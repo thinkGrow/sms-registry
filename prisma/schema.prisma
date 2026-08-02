@@ -60,6 +60,7 @@ model Student {
 
   payments    Payment[]
   submissions Submission[]
+  grades      Grade[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -104,6 +105,7 @@ model Assessment {
   deadline DateTime
 
   submissions Submission[]
+  grades      Grade[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -135,5 +137,34 @@ model Submission {
 
   // One submission per student per assessment; a resubmission updates this row
   // rather than creating a new one, so no history of earlier attempts is kept.
+  @@unique([studentId, assessmentId])
+}
+
+model Grade {
+  id String @id @default(cuid())
+
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+
+  // 0-100, half-point increments allowed. Decimal rather than Int or Float so
+  // the classification thresholds below compare exactly, no rounding risk.
+  score Decimal @db.Decimal(4, 1)
+
+  // Classification (Fail < 40, Pass >= 40, Merit >= 60, Distinction >= 70) is
+  // computed from score at read time, not stored, same principle as overdue
+  // and late flags elsewhere.
+
+  // Publish/withhold is per grade (per student, per assessment), not a single
+  // switch covering a student's whole marksheet at once, so staff can publish
+  // results assessment by assessment as grading finishes.
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([studentId, assessmentId])
 }

@@ -23,6 +23,8 @@ erDiagram
     Programme ||--o{ Assessment : offers
     Student ||--o{ Submission : submits
     Assessment ||--o{ Submission : receives
+    Student ||--o{ Grade : receives
+    Assessment ||--o{ Grade : has
     Programme {
         string id PK
         string name
@@ -62,6 +64,14 @@ erDiagram
         string fileName
         string fileType
     }
+    Grade {
+        string id PK
+        string assessmentId FK
+        string studentId FK
+        decimal score
+        boolean isPublished
+        datetime publishedAt
+    }
 ```
 
 This diagram is maintained by hand in this README and updated as models are added. To view it, open this file on GitHub (renders natively) or in an editor with Mermaid preview support (e.g. the Markdown Preview Mermaid Support extension in VS Code).
@@ -77,6 +87,8 @@ This diagram is maintained by hand in this README and updated as models are adde
 - **Assessments are scoped to a programme, not a specific module registration.** `Assessment.programmeId` restricts submission eligibility to students in that programme. This is a real gap we chose not to close: a full implementation would need a separate `Module` entity, a student-to-module registration record (since not every student in a programme takes every module, electives and exemptions exist), and module prerequisites (e.g. can't take "Algorithms II" without passing "Data Structures"). All three are out of scope here, since building them would mean a new registration workflow beyond the four described in the assessment, not just a schema addition.
 - **Deadlines are full timestamps, not dates.** `Assessment.deadline` includes a time of day, since whether a submission is "late" depends on an exact cutoff, unlike, say, date of birth where time of day is meaningless.
 - **Resubmission overwrites the existing record.** `Submission` has a unique constraint on `(studentId, assessmentId)`, so a resubmission updates the same row (new file, new timestamp) rather than preserving every past attempt. No submission history/versioning is kept.
+- **Grades use `Decimal`, not `Int`, and allow half points.** Classification thresholds (Pass ≥ 40, Merit ≥ 60, Distinction ≥ 70) need exact comparisons, so floating point isn't safe here, same reasoning as money fields. A score under 40 is treated as an implicit **Fail**, which the spec doesn't name but leaves as the obvious remaining case. Classification itself is computed from the score at read time, never stored.
+- **Publish/withhold is per grade, not per student.** Staff can publish or withhold each (student, assessment) result independently, rather than one switch revealing or hiding a student's entire marksheet at once. The spec's wording ("per student") was ambiguous here; this reading was chosen because it lets staff publish results assessment by assessment as grading finishes, which is how a Registry would realistically operate.
 
 ## Getting Started
 
