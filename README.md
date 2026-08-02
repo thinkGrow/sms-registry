@@ -5,7 +5,7 @@ Technical assessment submission for PEN Global, covering the Registry module: st
 ## Tech Stack
 
 - Next.js (App Router) + TypeScript
-- PostgreSQL + Prisma ORM
+- PostgreSQL + Prisma ORM (via the `@prisma/adapter-pg` driver adapter)
 - Tailwind CSS
 - shadcn/ui
 
