@@ -11,3 +11,46 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model Programme {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  feeAmount Decimal  @db.Decimal(10, 2)
+  students  Student[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum EnrolmentStatus {
+  ENROLLED
+  DEFERRED
+  WITHDRAWN
+  COMPLETED
+}
+
+model Student {
+  id          String   @id @default(cuid())
+  studentId   String   @unique // e.g. SMS-2025-0001, generated in application logic
+  fullName    String
+  email       String   @unique
+  dateOfBirth DateTime @db.Date
+
+  programmeId String
+  programme   Programme @relation(fields: [programmeId], references: [id])
+
+  // Year of study (1st/2nd/3rd...), not intake/cohort year. Stored as a plain,
+  // staff-editable value rather than derived from enrolment date, because a
+  // retake can put a student in the same year across two academic sessions.
+  academicYear Int
+
+  status EnrolmentStatus @default(ENROLLED)
+
+  // Optional per-student fee override (e.g. discount, financial aid, scholarship)
+  // for cases where the standard programme fee doesn't apply. Deliberately kept
+  // as a single field rather than a full financial-aid/scholarship subsystem,
+  // which is out of scope for this assessment - see README for reasoning.
+  feeOverride Decimal? @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
