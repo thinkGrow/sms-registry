@@ -20,6 +20,9 @@ Technical assessment submission for PEN Global, covering the Registry module: st
 erDiagram
     Programme ||--o{ Student : enrolls
     Student ||--o{ Payment : makes
+    Programme ||--o{ Assessment : offers
+    Student ||--o{ Submission : submits
+    Assessment ||--o{ Submission : receives
     Programme {
         string id PK
         string name
@@ -44,6 +47,21 @@ erDiagram
         decimal amount
         date paidAt
     }
+    Assessment {
+        string id PK
+        string title
+        string module
+        string programmeId FK
+        datetime deadline
+    }
+    Submission {
+        string id PK
+        string assessmentId FK
+        string studentId FK
+        string fileUrl
+        string fileName
+        string fileType
+    }
 ```
 
 This diagram is maintained by hand in this README and updated as models are added. To view it, open this file on GitHub (renders natively) or in an editor with Mermaid preview support (e.g. the Markdown Preview Mermaid Support extension in VS Code).
@@ -56,6 +74,9 @@ This diagram is maintained by hand in this README and updated as models are adde
 - **Payment reference numbers are auto-generated, not staff-entered.** This app doesn't integrate with a real payment gateway or bank, so there's no external reference number flowing in from anywhere to capture. The system generates its own (e.g. `PMT-2026-000001`), which sidesteps staff typos and uniqueness conflicts entirely.
 - **Payments are ordinary CRUD, not an accounting ledger.** Staff can edit or delete a recorded payment directly to fix a mistake. A real accounting system would use immutable entries with reversal/adjustment records to preserve a full audit trail instead of allowing direct edits — that's out of scope here given the assessment's timeframe.
 - **"Overdue" is defined per-programme, not per-student or by enrolment date.** A balance is overdue when it's greater than zero and today is past that programme's `feeDueDate`. A programme with no due date set never flags its students as overdue, rather than defaulting to always/never overdue silently.
+- **Assessments are scoped to a programme, not a specific module registration.** `Assessment.programmeId` restricts submission eligibility to students in that programme. This is a real gap we chose not to close: a full implementation would need a separate `Module` entity, a student-to-module registration record (since not every student in a programme takes every module, electives and exemptions exist), and module prerequisites (e.g. can't take "Algorithms II" without passing "Data Structures"). All three are out of scope here, since building them would mean a new registration workflow beyond the four described in the assessment, not just a schema addition.
+- **Deadlines are full timestamps, not dates.** `Assessment.deadline` includes a time of day, since whether a submission is "late" depends on an exact cutoff, unlike, say, date of birth where time of day is meaningless.
+- **Resubmission overwrites the existing record.** `Submission` has a unique constraint on `(studentId, assessmentId)`, so a resubmission updates the same row (new file, new timestamp) rather than preserving every past attempt. No submission history/versioning is kept.
 
 ## Getting Started
 

@@ -22,9 +22,10 @@ model Programme {
   // to "always overdue" or "never overdue" silently.
   feeDueDate DateTime? @db.Date
 
-  students  Student[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  students    Student[]
+  assessments Assessment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 enum EnrolmentStatus {
@@ -57,7 +58,8 @@ model Student {
   // which is out of scope for this assessment - see README for reasoning.
   feeOverride Decimal? @db.Decimal(10, 2)
 
-  payments Payment[]
+  payments    Payment[]
+  submissions Submission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -80,4 +82,58 @@ model Payment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Assessment {
+  id    String @id @default(cuid())
+  title String
+
+  // Plain descriptive label (e.g. "Data Structures"), not a separate Module
+  // entity. See README Known Limitations: this app doesn't model per-module
+  // student registration.
+  module String
+
+  // Restricts submission eligibility to students in this programme. Deliberate
+  // simplification: assumes every student in the programme takes every module
+  // under it, doesn't account for electives or individual module registration.
+  programmeId String
+  programme   Programme @relation(fields: [programmeId], references: [id])
+
+  // Full date and time, unlike date-only fields elsewhere, since "late" is
+  // determined precisely against a cutoff time, not just a calendar day.
+  deadline DateTime
+
+  submissions Submission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum SubmissionFileType {
+  PDF
+  DOCX
+}
+
+model Submission {
+  id String @id @default(cuid())
+
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+
+  fileUrl  String
+  fileName String
+  fileType SubmissionFileType
+
+  // createdAt = time of the first submission. updatedAt = time of the most
+  // recent resubmission. "Late" is computed as updatedAt > assessment.deadline
+  // at query time, not stored, same principle as the overdue-fee flag.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One submission per student per assessment; a resubmission updates this row
+  // rather than creating a new one, so no history of earlier attempts is kept.
+  @@unique([studentId, assessmentId])
 }
