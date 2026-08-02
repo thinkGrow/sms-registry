@@ -6,3 +6,7 @@ This project was built with Claude Code as a collaborative pair-programmer. Each
 - Scaffolded with `create-next-app` (TypeScript, App Router, Tailwind, ESLint, `src/` dir, `@/*` import alias) — commands suggested by Claude, run manually in terminal.
 - Noted that the scaffold's generated `AGENTS.md`/`CLAUDE.md` flags Next.js 16 as having breaking changes vs. AI training data; agreed to check `node_modules/next/dist/docs/` before writing framework-specific code rather than assuming older App Router conventions.
 - Developer instructed Claude to keep commit messages structured (Conventional Commits: `feat`/`fix`/`chore`/`docs`/`test`/`ci`) for the rest of the project, and to log that instruction here.
+
+### Design system
+- Ran `shadcn@latest init` interactively (developer's own terminal), landing on `base-sera` style / `taupe` base color.
+- Before adding feature components, developer asked Claude to confirm a centralized color system and reusable components existed. Claude verified shadcn's CSS-variable token system and the existing `cva`-based `Button` component, then extended `globals.css` with app-specific semantic tokens (`success`, `warning`, `info`) for status flags (enrolment status, overdue fees, late submissions, grade classification) — defined once, light + dark, rather than one-off colors per page.
