@@ -10,3 +10,8 @@ This project was built with Claude Code as a collaborative pair-programmer. Each
 ### Design system
 - Ran `shadcn@latest init` interactively (developer's own terminal), landing on `base-sera` style / `taupe` base color.
 - Before adding feature components, developer asked Claude to confirm a centralized color system and reusable components existed. Claude verified shadcn's CSS-variable token system and the existing `cva`-based `Button` component, then extended `globals.css` with app-specific semantic tokens (`success`, `warning`, `info`) for status flags (enrolment status, overdue fees, late submissions, grade classification) — defined once, light + dark, rather than one-off colors per page.
+
+### Database setup
+- Added `docker-compose.yml` for local PostgreSQL (chosen over a hosted DB so anyone cloning the repo can run it with zero account signup, and the same image can later back a CI service container).
+- Ran `npx prisma init`, which generated a placeholder `DATABASE_URL` pointing at Prisma's own hosted `prisma+postgres://` dev service rather than a plain Postgres connection string — Claude caught this and replaced it with the actual Docker Postgres connection string, and added the missing `dotenv` dependency that `prisma.config.ts` requires.
+- Filled in README's "Getting Started" and "Environment Variables" sections with the real setup steps once they existed, replacing earlier placeholders.

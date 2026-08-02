@@ -16,11 +16,33 @@ Technical assessment submission for PEN Global, covering the Registry module: st
 
 ## Getting Started
 
-_(to be filled in once the database and env vars are wired up)_
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Copy environment variables (defaults already match docker-compose.yml)
+cp .env.example .env
+
+# 3. Start PostgreSQL
+docker compose up -d
+
+# 4. Apply the schema and generate the Prisma Client
+npx prisma migrate dev
+
+# 5. Seed demo data
+npx prisma db seed
+
+# 6. Run the dev server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
 
 ## Environment Variables
 
-_(to be filled in once Prisma/Postgres are configured — see `.env.example`)_
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string. Default in `.env.example` matches the `docker-compose.yml` Postgres container out of the box. |
 
 ## AI Usage
 
