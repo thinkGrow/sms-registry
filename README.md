@@ -14,6 +14,31 @@ Technical assessment submission for PEN Global, covering the Registry module: st
 - **Colors** are centralized as CSS variables in `src/app/globals.css` (`--primary`, `--destructive`, `--success`, `--warning`, `--info`, etc.), each with a light and dark value. Components reference these tokens (`bg-success`, `text-warning-foreground`, ...) rather than hardcoded colors, so retuning a color is a one-line change.
 - **Components** are shadcn/ui primitives owned in `src/components/ui/` (e.g. `Button`, `Badge`), each defining every visual variant once via `cva`. Feature code always imports these shared components rather than styling one-off buttons/badges per page.
 
+## Data Model
+
+```mermaid
+erDiagram
+    Programme ||--o{ Student : enrolls
+    Programme {
+        string id PK
+        string name
+        decimal feeAmount
+    }
+    Student {
+        string id PK
+        string studentId
+        string fullName
+        string email
+        date dateOfBirth
+        string programmeId FK
+        int academicYear
+        string status
+        decimal feeOverride
+    }
+```
+
+This diagram is maintained by hand in this README and updated as models are added. To view it, open this file on GitHub (renders natively) or in an editor with Mermaid preview support (e.g. the Markdown Preview Mermaid Support extension in VS Code).
+
 ## Design Decisions & Known Limitations
 
 - **One programme per student.** A student can only be enrolled in a single programme at a time. In reality, students sometimes hold multiple programmes (double majors, transfers) — this is a deliberate scope simplification given the assessment's timeframe and the spec's literal wording ("their programme"), not an oversight. Modeling it properly would require scoping fees, assessments, and grades per-programme-per-student rather than per-student, which is a structural change we're choosing not to take on now.
