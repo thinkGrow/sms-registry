@@ -1,4 +1,4 @@
-# Student Management System — Registry Module
+# Student Management System : Registry Module
 
 Technical assessment submission for PEN Global, covering the Registry module: student enrolment, fees & payments, assessment submission, and marksheet & results.
 
