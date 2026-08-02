@@ -16,6 +16,12 @@ model Programme {
   id        String   @id @default(cuid())
   name      String   @unique
   feeAmount Decimal  @db.Decimal(10, 2)
+
+  // Date the programme's fee is due each cycle. Nullable: a programme with no
+  // due date set never flags its students as overdue, rather than defaulting
+  // to "always overdue" or "never overdue" silently.
+  feeDueDate DateTime? @db.Date
+
   students  Student[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -50,6 +56,27 @@ model Student {
   // as a single field rather than a full financial-aid/scholarship subsystem,
   // which is out of scope for this assessment - see README for reasoning.
   feeOverride Decimal? @db.Decimal(10, 2)
+
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payment {
+  id String @id @default(cuid())
+
+  // Auto-generated internal transaction reference, e.g. PMT-2026-000001.
+  // This app doesn't process payments itself (no gateway/bank integration),
+  // so there's no external reference to capture; generating our own avoids
+  // relying on staff-entered values for uniqueness.
+  referenceNumber String @unique
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+
+  amount Decimal  @db.Decimal(10, 2)
+  paidAt DateTime @db.Date
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

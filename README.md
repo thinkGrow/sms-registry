@@ -19,10 +19,12 @@ Technical assessment submission for PEN Global, covering the Registry module: st
 ```mermaid
 erDiagram
     Programme ||--o{ Student : enrolls
+    Student ||--o{ Payment : makes
     Programme {
         string id PK
         string name
         decimal feeAmount
+        date feeDueDate
     }
     Student {
         string id PK
@@ -35,6 +37,13 @@ erDiagram
         string status
         decimal feeOverride
     }
+    Payment {
+        string id PK
+        string referenceNumber
+        string studentId FK
+        decimal amount
+        date paidAt
+    }
 ```
 
 This diagram is maintained by hand in this README and updated as models are added. To view it, open this file on GitHub (renders natively) or in an editor with Mermaid preview support (e.g. the Markdown Preview Mermaid Support extension in VS Code).
@@ -44,6 +53,9 @@ This diagram is maintained by hand in this README and updated as models are adde
 - **One programme per student.** A student can only be enrolled in a single programme at a time. In reality, students sometimes hold multiple programmes (double majors, transfers) — this is a deliberate scope simplification given the assessment's timeframe and the spec's literal wording ("their programme"), not an oversight. Modeling it properly would require scoping fees, assessments, and grades per-programme-per-student rather than per-student, which is a structural change we're choosing not to take on now.
 - **`feeOverride` instead of a scholarship/financial-aid system.** Students can have an optional per-student fee override (discount, aid, scholarship) via a single nullable field, rather than a full application/approval workflow. This covers the common case ("this student doesn't pay the standard rate") without building an entire subsystem the spec doesn't ask for.
 - **`academicYear` is staff-editable, not derived.** It represents year of study (1st/2nd/3rd...), not intake year, and isn't computed from enrolment date because a retake can put a student in the same academic year across two sessions.
+- **Payment reference numbers are auto-generated, not staff-entered.** This app doesn't integrate with a real payment gateway or bank, so there's no external reference number flowing in from anywhere to capture. The system generates its own (e.g. `PMT-2026-000001`), which sidesteps staff typos and uniqueness conflicts entirely.
+- **Payments are ordinary CRUD, not an accounting ledger.** Staff can edit or delete a recorded payment directly to fix a mistake. A real accounting system would use immutable entries with reversal/adjustment records to preserve a full audit trail instead of allowing direct edits — that's out of scope here given the assessment's timeframe.
+- **"Overdue" is defined per-programme, not per-student or by enrolment date.** A balance is overdue when it's greater than zero and today is past that programme's `feeDueDate`. A programme with no due date set never flags its students as overdue, rather than defaulting to always/never overdue silently.
 
 ## Getting Started
 
