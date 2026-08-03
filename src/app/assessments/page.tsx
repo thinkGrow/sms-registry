@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { serializeProgramme } from "@/lib/serialize";
 import { getSession } from "@/lib/session";
 import { AssessmentFormDialog } from "./_components/assessment-form-dialog";
+import {
+  classifyGrade,
+  classificationLabels,
+  classificationBadgeVariant,
+} from "@/lib/classification";
 
 export default async function AssessmentsPage() {
   const session = await getSession();
@@ -19,10 +24,20 @@ export default async function AssessmentsPage() {
           ?.programmeId
       : undefined;
 
+  // For a student, only their own submission/grade is needed (to show a
+  // per-row result), not the whole cohort's. Staff still get every
+  // submission, since the "Submissions" column is a cohort-wide count.
+  const ownRecordFilter =
+    session.role === "STUDENT" ? { studentId: session.studentId } : undefined;
+
   const [assessments, programmes] = await Promise.all([
     prisma.assessment.findMany({
       where: { ...(programmeFilter && { programmeId: programmeFilter }) },
-      include: { programme: true, submissions: true },
+      include: {
+        programme: true,
+        submissions: { where: ownRecordFilter },
+        grades: { where: ownRecordFilter },
+      },
       orderBy: { deadline: "asc" },
     }),
     prisma.programme.findMany({ orderBy: { name: "asc" } }),
@@ -57,7 +72,7 @@ export default async function AssessmentsPage() {
                   <TableHead>Module</TableHead>
                   <TableHead>Programme</TableHead>
                   <TableHead>Deadline</TableHead>
-                  <TableHead>Submissions</TableHead>
+                  <TableHead>{isStaff ? "Submissions" : "Your Result"}</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -65,6 +80,10 @@ export default async function AssessmentsPage() {
               <TableBody>
                 {assessments.map((assessment) => {
                   const isPast = new Date() > new Date(assessment.deadline);
+                  // Only populated (and only ever containing this student's
+                  // own record) when session.role === "STUDENT".
+                  const mySubmission = assessment.submissions[0];
+                  const myGrade = assessment.grades[0];
                   return (
                     <TableRow key={assessment.id}>
                       <TableCell>
@@ -86,7 +105,19 @@ export default async function AssessmentsPage() {
                           minute: "2-digit",
                         })}
                       </TableCell>
-                      <TableCell>{assessment.submissions.length}</TableCell>
+                      <TableCell>
+                        {isStaff ? (
+                          assessment.submissions.length
+                        ) : !mySubmission ? (
+                          <span className="text-muted-foreground">Not submitted</span>
+                        ) : myGrade?.isPublished ? (
+                          <Badge variant={classificationBadgeVariant[classifyGrade(Number(myGrade.score))]}>
+                            {Number(myGrade.score)} · {classificationLabels[classifyGrade(Number(myGrade.score))]}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">Pending</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={isPast ? "warning" : "success"}>
                           {isPast ? "Closed" : "Open"}

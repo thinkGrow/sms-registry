@@ -17,6 +17,11 @@ import {
 import { AssessmentFormDialog } from "../_components/assessment-form-dialog";
 import { SubmissionForm } from "../_components/submission-form";
 import { GradesSection } from "../_components/grades-section";
+import {
+  classifyGrade,
+  classificationLabels,
+  classificationBadgeVariant,
+} from "@/lib/classification";
 
 export default async function AssessmentDetailPage({
   params,
@@ -209,6 +214,7 @@ export default async function AssessmentDetailPage({
                   <TableHead>File</TableHead>
                   <TableHead>Submitted</TableHead>
                   <TableHead>Status</TableHead>
+                  {!isStaff && <TableHead>Result</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -260,6 +266,24 @@ export default async function AssessmentDetailPage({
                           isResubmission && <Badge variant="info">Resubmitted</Badge>
                         )}
                       </TableCell>
+                      {!isStaff && (
+                        <TableCell>
+                          {currentStudentGrade?.isPublished ? (
+                            <Badge
+                              variant={
+                                classificationBadgeVariant[
+                                  classifyGrade(Number(currentStudentGrade.score))
+                                ]
+                              }
+                            >
+                              {Number(currentStudentGrade.score)} ·{" "}
+                              {classificationLabels[classifyGrade(Number(currentStudentGrade.score))]}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">Pending</Badge>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
