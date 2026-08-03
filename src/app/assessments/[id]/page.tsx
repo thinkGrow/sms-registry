@@ -181,6 +181,15 @@ export default async function AssessmentDetailPage({
               <TableBody>
                 {visibleSubmissions.map((submission) => {
                   const isLate = new Date(submission.updatedAt) > deadline;
+                  const isResubmission =
+                    new Date(submission.createdAt).getTime() !==
+                    new Date(submission.updatedAt).getTime();
+                  const grade = assessment.grades.find(
+                    (g) => g.studentId === submission.studentId
+                  );
+                  const resubmittedAfterGrading =
+                    grade !== undefined &&
+                    new Date(submission.updatedAt) > new Date(grade.updatedAt);
                   return (
                     <TableRow key={submission.id}>
                       <TableCell>
@@ -210,8 +219,13 @@ export default async function AssessmentDetailPage({
                           minute: "2-digit",
                         })}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="flex flex-wrap gap-1.5">
                         {isLate && <Badge variant="warning">Late</Badge>}
+                        {resubmittedAfterGrading ? (
+                          <Badge variant="destructive">Resubmitted after grading</Badge>
+                        ) : (
+                          isResubmission && <Badge variant="info">Resubmitted</Badge>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
