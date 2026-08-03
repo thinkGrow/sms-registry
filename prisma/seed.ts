@@ -153,27 +153,30 @@ async function main() {
     },
   });
 
-  await prisma.submission.createMany({
-    data: [
-      // On time (deadline was 2026-07-20).
-      { assessmentId: dataStructuresAssignment.id, studentId: alice.id, fileUrl: "/uploads/alice-ds-assignment1.pdf", fileName: "alice-ds-assignment1.pdf", fileType: "PDF" },
-      // Late: submitted after the 2026-07-20 deadline.
-      { assessmentId: dataStructuresAssignment.id, studentId: brian.id, fileUrl: "/uploads/brian-ds-assignment1.docx", fileName: "brian-ds-assignment1.docx", fileType: "DOCX" },
-      { assessmentId: dataStructuresAssignment.id, studentId: grace.id, fileUrl: "/uploads/grace-ds-assignment1.pdf", fileName: "grace-ds-assignment1.pdf", fileType: "PDF" },
-      { assessmentId: algorithmsMidterm.id, studentId: alice.id, fileUrl: "/uploads/alice-algorithms-midterm.pdf", fileName: "alice-algorithms-midterm.pdf", fileType: "PDF" },
-      { assessmentId: algorithmsMidterm.id, studentId: brian.id, fileUrl: "/uploads/brian-algorithms-midterm.pdf", fileName: "brian-algorithms-midterm.pdf", fileType: "PDF" },
-      { assessmentId: algorithmsMidterm.id, studentId: grace.id, fileUrl: "/uploads/grace-algorithms-midterm.pdf", fileName: "grace-algorithms-midterm.pdf", fileType: "PDF" },
-      { assessmentId: businessEthicsEssay.id, studentId: carla.id, fileUrl: "/uploads/carla-business-ethics-essay.docx", fileName: "carla-business-ethics-essay.docx", fileType: "DOCX" },
-    ],
-  });
+  // Individual creates (not createMany) so each submission's updatedAt can be
+  // explicitly backdated to its intended illustrative date. Without this,
+  // every row defaults to "now", which is after every deadline below, and
+  // the "late" flag (computed from updatedAt vs. assessment.deadline) would
+  // incorrectly mark everything late rather than just the intended examples.
+  const submissionSeeds = [
+    // On time (Data Structures deadline was 2026-07-20).
+    { assessmentId: dataStructuresAssignment.id, studentId: alice.id, fileUrl: "/uploads/alice-ds-assignment1.pdf", fileName: "alice-ds-assignment1.pdf", fileType: "PDF" as const, submittedAt: "2026-07-18T14:00:00Z" },
+    // Late: submitted after the 2026-07-20 deadline.
+    { assessmentId: dataStructuresAssignment.id, studentId: brian.id, fileUrl: "/uploads/brian-ds-assignment1.docx", fileName: "brian-ds-assignment1.docx", fileType: "DOCX" as const, submittedAt: "2026-07-22T10:00:00Z" },
+    { assessmentId: dataStructuresAssignment.id, studentId: grace.id, fileUrl: "/uploads/grace-ds-assignment1.pdf", fileName: "grace-ds-assignment1.pdf", fileType: "PDF" as const, submittedAt: "2026-07-19T09:00:00Z" },
+    // On time (Algorithms Midterm deadline was 2026-07-25).
+    { assessmentId: algorithmsMidterm.id, studentId: alice.id, fileUrl: "/uploads/alice-algorithms-midterm.pdf", fileName: "alice-algorithms-midterm.pdf", fileType: "PDF" as const, submittedAt: "2026-07-24T11:00:00Z" },
+    { assessmentId: algorithmsMidterm.id, studentId: brian.id, fileUrl: "/uploads/brian-algorithms-midterm.pdf", fileName: "brian-algorithms-midterm.pdf", fileType: "PDF" as const, submittedAt: "2026-07-24T15:00:00Z" },
+    { assessmentId: algorithmsMidterm.id, studentId: grace.id, fileUrl: "/uploads/grace-algorithms-midterm.pdf", fileName: "grace-algorithms-midterm.pdf", fileType: "PDF" as const, submittedAt: "2026-07-23T16:00:00Z" },
+    // On time (Business Ethics Essay deadline is 2026-08-15, still open).
+    { assessmentId: businessEthicsEssay.id, studentId: carla.id, fileUrl: "/uploads/carla-business-ethics-essay.docx", fileName: "carla-business-ethics-essay.docx", fileType: "DOCX" as const, submittedAt: "2026-08-01T13:00:00Z" },
+  ];
 
-  // Brian's Data Structures submission (2026-07-22) is deliberately after the 2026-07-20
-  // deadline, backdating updatedAt so the "late" flag (computed from updatedAt vs.
-  // assessment.deadline) reflects it correctly rather than the seed's insert time.
-  await prisma.submission.update({
-    where: { studentId_assessmentId: { studentId: brian.id, assessmentId: dataStructuresAssignment.id } },
-    data: { updatedAt: new Date("2026-07-22T10:00:00Z") },
-  });
+  for (const { submittedAt, ...data } of submissionSeeds) {
+    await prisma.submission.create({
+      data: { ...data, createdAt: new Date(submittedAt), updatedAt: new Date(submittedAt) },
+    });
+  }
 
   await prisma.grade.create({
     data: {
