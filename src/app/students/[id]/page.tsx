@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { serializeProgramme, serializeStudent, serializePayment } from "@/lib/serialize";
 import { calculateStudentBalance } from "@/lib/balance";
+import { getSession } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,12 @@ export default async function StudentDetailPage({
 }) {
   const { id } = await params;
 
+  const session = await getSession();
+  if (session.role === "STUDENT" && session.studentId !== id) {
+    redirect(`/students/${session.studentId}`);
+  }
+  const isStaff = session.role === "STAFF";
+
   const [student, programmes] = await Promise.all([
     prisma.student.findUnique({
       where: { id },
@@ -64,6 +71,12 @@ export default async function StudentDetailPage({
   const serializedProgrammes = programmes.map(serializeProgramme);
   const serializedPayments = student.payments.map(serializePayment);
   const balance = calculateStudentBalance(student, student.programme, student.payments);
+
+  // Students only see published results; staff see everything, including
+  // grades still being withheld.
+  const visibleGrades = isStaff
+    ? student.grades
+    : student.grades.filter((grade) => grade.isPublished);
 
   const fields: { label: string; value: React.ReactNode }[] = [
     { label: "Student ID", value: <span className="font-mono">{student.studentId}</span> },
@@ -94,10 +107,16 @@ export default async function StudentDetailPage({
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" render={<Link href="/students" />}>
-          Back to Students
-        </Button>
-        <StudentFormDialog programmes={serializedProgrammes} student={serializedStudent} />
+        {isStaff ? (
+          <Button variant="ghost" size="sm" render={<Link href="/students" />}>
+            Back to Students
+          </Button>
+        ) : (
+          <span />
+        )}
+        {isStaff && (
+          <StudentFormDialog programmes={serializedProgrammes} student={serializedStudent} />
+        )}
       </div>
 
       <Card>
@@ -125,6 +144,7 @@ export default async function StudentDetailPage({
             studentId={student.id}
             payments={serializedPayments}
             balance={balance}
+            canManage={isStaff}
           />
         </CardContent>
       </Card>
@@ -134,8 +154,10 @@ export default async function StudentDetailPage({
           <CardTitle>Marksheet</CardTitle>
         </CardHeader>
         <CardContent>
-          {student.grades.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No grades recorded yet.</p>
+          {visibleGrades.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              {isStaff ? "No grades recorded yet." : "No published results yet."}
+            </p>
           ) : (
             <Table>
               <TableHeader>
@@ -143,11 +165,11 @@ export default async function StudentDetailPage({
                   <TableHead>Assessment</TableHead>
                   <TableHead>Score</TableHead>
                   <TableHead>Classification</TableHead>
-                  <TableHead>Status</TableHead>
+                  {isStaff && <TableHead>Status</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {student.grades.map((grade) => {
+                {visibleGrades.map((grade) => {
                   const score = Number(grade.score);
                   const classification = classifyGrade(score);
                   return (
@@ -169,21 +191,19 @@ export default async function StudentDetailPage({
                           {classificationLabels[classification]}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={grade.isPublished ? "success" : "secondary"}>
-                          {grade.isPublished ? "Published" : "Withheld"}
-                        </Badge>
-                      </TableCell>
+                      {isStaff && (
+                        <TableCell>
+                          <Badge variant={grade.isPublished ? "success" : "secondary"}>
+                            {grade.isPublished ? "Published" : "Withheld"}
+                          </Badge>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
           )}
-          <p className="text-muted-foreground mt-3 text-xs">
-            This view shows all grades for Registry staff. A student-facing view
-            (built in the next step) will only show published results.
-          </p>
         </CardContent>
       </Card>
     </div>

@@ -4,11 +4,23 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { serializeProgramme } from "@/lib/serialize";
+import { getSession } from "@/lib/session";
 import { AssessmentFormDialog } from "./_components/assessment-form-dialog";
 
 export default async function AssessmentsPage() {
+  const session = await getSession();
+  const isStaff = session.role === "STAFF";
+
+  // Students only see assessments for their own programme; staff see all.
+  const programmeFilter =
+    session.role === "STUDENT"
+      ? (await prisma.student.findUnique({ where: { id: session.studentId } }))
+          ?.programmeId
+      : undefined;
+
   const [assessments, programmes] = await Promise.all([
     prisma.assessment.findMany({
+      where: { ...(programmeFilter && { programmeId: programmeFilter }) },
       include: { programme: true, submissions: true },
       orderBy: { deadline: "asc" },
     }),
@@ -26,7 +38,7 @@ export default async function AssessmentsPage() {
             {assessments.length} assessment{assessments.length === 1 ? "" : "s"}
           </p>
         </div>
-        <AssessmentFormDialog programmes={serializedProgrammes} />
+        {isStaff && <AssessmentFormDialog programmes={serializedProgrammes} />}
       </div>
 
       <Card>

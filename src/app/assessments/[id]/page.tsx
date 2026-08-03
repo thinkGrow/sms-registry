@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { serializeProgramme } from "@/lib/serialize";
+import { getSession } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,9 @@ export default async function AssessmentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const session = await getSession();
+  const isStaff = session.role === "STAFF";
 
   const assessment = await prisma.assessment.findUnique({
     where: { id },
@@ -58,6 +62,19 @@ export default async function AssessmentDetailPage({
     studentId: student.studentId,
   }));
 
+  // In student view, only show the submit form if this assessment belongs
+  // to the student's own programme (matches the same eligibility rule the
+  // API enforces server-side).
+  const canCurrentStudentSubmit =
+    session.role === "STUDENT" &&
+    eligibleStudents.some((s) => s.id === session.studentId);
+
+  const visibleSubmissions = isStaff
+    ? assessment.submissions
+    : assessment.submissions.filter(
+        (s) => session.role === "STUDENT" && s.studentId === session.studentId
+      );
+
   const deadline = new Date(assessment.deadline);
   const isPastDeadline = new Date() > deadline;
 
@@ -67,16 +84,18 @@ export default async function AssessmentDetailPage({
         <Button variant="ghost" size="sm" render={<Link href="/assessments" />}>
           Back to Assessments
         </Button>
-        <AssessmentFormDialog
-          programmes={[serializeProgramme(assessment.programme)]}
-          assessment={{
-            id: assessment.id,
-            title: assessment.title,
-            module: assessment.module,
-            programmeId: assessment.programmeId,
-            deadline: assessment.deadline,
-          }}
-        />
+        {isStaff && (
+          <AssessmentFormDialog
+            programmes={[serializeProgramme(assessment.programme)]}
+            assessment={{
+              id: assessment.id,
+              title: assessment.title,
+              module: assessment.module,
+              programmeId: assessment.programmeId,
+              deadline: assessment.deadline,
+            }}
+          />
+        )}
       </div>
 
       <Card>
@@ -117,19 +136,33 @@ export default async function AssessmentDetailPage({
           <CardTitle>Submit Work</CardTitle>
         </CardHeader>
         <CardContent>
-          <SubmissionForm
-            assessmentId={assessment.id}
-            eligibleStudents={eligibleStudents}
-          />
+          {isStaff ? (
+            <SubmissionForm
+              assessmentId={assessment.id}
+              eligibleStudents={eligibleStudents}
+            />
+          ) : canCurrentStudentSubmit ? (
+            <SubmissionForm
+              assessmentId={assessment.id}
+              eligibleStudents={eligibleStudents}
+              fixedStudentId={session.role === "STUDENT" ? session.studentId : undefined}
+            />
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              This assessment isn&apos;t open to your programme.
+            </p>
+          )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Submissions ({assessment.submissions.length})</CardTitle>
+          <CardTitle>
+            {isStaff ? `Submissions (${visibleSubmissions.length})` : "Your Submission"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {assessment.submissions.length === 0 ? (
+          {visibleSubmissions.length === 0 ? (
             <p className="text-muted-foreground text-sm">No submissions yet.</p>
           ) : (
             <Table>
@@ -142,7 +175,7 @@ export default async function AssessmentDetailPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assessment.submissions.map((submission) => {
+                {visibleSubmissions.map((submission) => {
                   const isLate = new Date(submission.updatedAt) > deadline;
                   return (
                     <TableRow key={submission.id}>
@@ -185,14 +218,16 @@ export default async function AssessmentDetailPage({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Grades</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <GradesSection assessmentId={assessment.id} rows={gradeRows} />
-        </CardContent>
-      </Card>
+      {isStaff && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Grades</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <GradesSection assessmentId={assessment.id} rows={gradeRows} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

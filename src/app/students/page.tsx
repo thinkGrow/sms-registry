@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/session";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StudentFilters } from "./_components/student-filters";
 import { StudentsTable } from "./_components/students-table";
@@ -27,6 +29,11 @@ export default async function StudentsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const session = await getSession();
+  if (session.role === "STUDENT") {
+    redirect(`/students/${session.studentId}`);
+  }
+
   const { search, programmeId, status } = await searchParams;
 
   const [students, programmes] = await Promise.all([

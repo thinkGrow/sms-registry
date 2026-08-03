@@ -1,11 +1,18 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { calculateStudentBalance } from "@/lib/balance";
+import { getSession } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage() {
+  const session = await getSession();
+  if (session.role === "STUDENT") {
+    redirect(`/students/${session.studentId}`);
+  }
+
   const students = await prisma.student.findMany({
     include: { programme: true, payments: true },
     orderBy: { fullName: "asc" },

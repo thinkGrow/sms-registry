@@ -20,10 +20,12 @@ export function PaymentsSection({
   studentId,
   payments,
   balance,
+  canManage,
 }: {
   studentId: string;
   payments: SerializedPayment[];
   balance: StudentBalanceInfo;
+  canManage: boolean;
 }) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -54,7 +56,7 @@ export function PaymentsSection({
           </span>
           {balance.isOverdue && <Badge variant="destructive">Overdue</Badge>}
         </div>
-        <PaymentFormDialog studentId={studentId} />
+        {canManage && <PaymentFormDialog studentId={studentId} />}
       </div>
 
       {payments.length === 0 ? (
@@ -66,7 +68,7 @@ export function PaymentsSection({
               <TableHead>Reference</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Date paid</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              {canManage && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -83,17 +85,19 @@ export function PaymentsSection({
                     year: "numeric",
                   })}
                 </TableCell>
-                <TableCell className="flex justify-end gap-2 text-right">
-                  <PaymentFormDialog studentId={studentId} payment={payment} />
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(payment.id)}
-                    disabled={deletingId === payment.id}
-                  >
-                    {deletingId === payment.id ? "Deleting..." : "Delete"}
-                  </Button>
-                </TableCell>
+                {canManage && (
+                  <TableCell className="flex justify-end gap-2 text-right">
+                    <PaymentFormDialog studentId={studentId} payment={payment} />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(payment.id)}
+                      disabled={deletingId === payment.id}
+                    >
+                      {deletingId === payment.id ? "Deleting..." : "Delete"}
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
