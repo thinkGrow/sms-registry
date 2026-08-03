@@ -4,29 +4,17 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-type EligibleStudent = { id: string; fullName: string; studentId: string };
 
 export function SubmissionForm({
   assessmentId,
-  eligibleStudents,
-  fixedStudentId,
+  studentId,
 }: {
   assessmentId: string;
-  eligibleStudents: EligibleStudent[];
-  // When set (student view), submits as this student directly instead of
-  // showing a picker, there's exactly one student to choose from.
-  fixedStudentId?: string;
+  // Students only ever submit as themselves; there's no staff "submit on
+  // behalf of a student" path anymore, so this is always the current student.
+  studentId: string;
 }) {
   const router = useRouter();
-  const [studentId, setStudentId] = useState<string>(fixedStudentId ?? "");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,10 +23,6 @@ export function SubmissionForm({
     e.preventDefault();
     setError(null);
 
-    if (!studentId) {
-      setError("Select a student");
-      return;
-    }
     if (!file) {
       setError("Choose a PDF or DOCX file");
       return;
@@ -63,43 +47,11 @@ export function SubmissionForm({
     }
 
     setFile(null);
-    if (!fixedStudentId) setStudentId("");
     router.refresh();
-  }
-
-  if (!fixedStudentId && eligibleStudents.length === 0) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        No enrolled students in this programme to submit against.
-      </p>
-    );
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
-      {!fixedStudentId && (
-        <div className="space-y-2">
-          <Label htmlFor="studentId">Student</Label>
-          <Select value={studentId} onValueChange={setStudentId}>
-            <SelectTrigger id="studentId" className="w-[220px]">
-              <SelectValue placeholder="Select a student">
-                {(value: string) =>
-                  eligibleStudents.find((s) => s.id === value)?.fullName ??
-                  "Select a student"
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {eligibleStudents.map((student) => (
-                <SelectItem key={student.id} value={student.id}>
-                  {student.fullName} ({student.studentId})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
       <div className="space-y-2">
         <Label htmlFor="file">File (PDF or DOCX)</Label>
         <input
@@ -115,7 +67,7 @@ export function SubmissionForm({
         {isSubmitting ? "Uploading..." : "Submit"}
       </Button>
 
-      {error && <p className="text-destructive w-full text-sm">{error}</p>}
+      {error && <p className="text-destructive text-sm">{error}</p>}
     </form>
   );
 }

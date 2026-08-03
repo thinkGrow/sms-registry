@@ -52,22 +52,18 @@ export default async function AssessmentDetailPage({
     };
   });
 
-  const eligibleStudentRecords = await prisma.student.findMany({
-    where: { programmeId: assessment.programmeId, status: "ENROLLED" },
-    orderBy: { fullName: "asc" },
-  });
-  const eligibleStudents = eligibleStudentRecords.map((student) => ({
-    id: student.id,
-    fullName: student.fullName,
-    studentId: student.studentId,
-  }));
-
-  // In student view, only show the submit form if this assessment belongs
-  // to the student's own programme (matches the same eligibility rule the
-  // API enforces server-side).
+  // Only show the submit form if this assessment belongs to the student's
+  // own programme and they're enrolled (matches the same eligibility rule
+  // the API enforces server-side).
   const canCurrentStudentSubmit =
     session.role === "STUDENT" &&
-    eligibleStudents.some((s) => s.id === session.studentId);
+    (await prisma.student.count({
+      where: {
+        id: session.studentId,
+        programmeId: assessment.programmeId,
+        status: "ENROLLED",
+      },
+    })) > 0;
 
   const visibleSubmissions = isStaff
     ? assessment.submissions
@@ -136,29 +132,22 @@ export default async function AssessmentDetailPage({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Submit Work</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isStaff ? (
-            <SubmissionForm
-              assessmentId={assessment.id}
-              eligibleStudents={eligibleStudents}
-            />
-          ) : canCurrentStudentSubmit ? (
-            <SubmissionForm
-              assessmentId={assessment.id}
-              eligibleStudents={eligibleStudents}
-              fixedStudentId={session.role === "STUDENT" ? session.studentId : undefined}
-            />
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              This assessment isn&apos;t open to your programme.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      {!isStaff && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Submit Work</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {canCurrentStudentSubmit && session.role === "STUDENT" ? (
+              <SubmissionForm assessmentId={assessment.id} studentId={session.studentId} />
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                This assessment isn&apos;t open to your programme.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
