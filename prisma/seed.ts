@@ -29,6 +29,16 @@ async function main() {
     },
   });
 
+  // No fee due date at all: demonstrates that a programme without one never
+  // flags its students as overdue, regardless of outstanding balance.
+  const dataScience = await prisma.programme.create({
+    data: {
+      name: "MSc Data Science",
+      feeAmount: 6000,
+      feeDueDate: null,
+    },
+  });
+
   const alice = await prisma.student.create({
     data: {
       studentId: "SMS-2025-0001",
@@ -119,6 +129,95 @@ async function main() {
     },
   });
 
+  // Unpaid, but NOT overdue: their programme (MSc Data Science) has no fee due date set.
+  const henry = await prisma.student.create({
+    data: {
+      studentId: "SMS-2025-0008",
+      fullName: "Henry Osei",
+      email: "henry.osei@example.com",
+      dateOfBirth: new Date("2001-03-02"),
+      programmeId: dataScience.id,
+      academicYear: 1,
+      status: "ENROLLED",
+    },
+  });
+
+  // Pays in two installments rather than a single lump sum.
+  const isla = await prisma.student.create({
+    data: {
+      studentId: "SMS-2025-0009",
+      fullName: "Isla Thompson",
+      email: "isla.thompson@example.com",
+      dateOfBirth: new Date("2003-10-08"),
+      programmeId: cs.id,
+      academicYear: 2,
+      status: "ENROLLED",
+    },
+  });
+
+  // Final-year student (edge case for academicYear), fully paid.
+  const jamal = await prisma.student.create({
+    data: {
+      studentId: "SMS-2025-0010",
+      fullName: "Jamal Bakr",
+      email: "jamal.bakr@example.com",
+      dateOfBirth: new Date("2000-12-19"),
+      programmeId: business.id,
+      academicYear: 4,
+      status: "ENROLLED",
+    },
+  });
+
+  // Deferred with a partial payment, also not overdue (no due date on this programme).
+  const fatima = await prisma.student.create({
+    data: {
+      studentId: "SMS-2025-0011",
+      fullName: "Fatima Noor",
+      email: "fatima.noor@example.com",
+      dateOfBirth: new Date("2002-07-14"),
+      programmeId: dataScience.id,
+      academicYear: 1,
+      status: "DEFERRED",
+    },
+  });
+
+  const liam = await prisma.student.create({
+    data: {
+      studentId: "SMS-2025-0012",
+      fullName: "Liam O'Connor",
+      email: "liam.oconnor@example.com",
+      dateOfBirth: new Date("2002-05-27"),
+      programmeId: cs.id,
+      academicYear: 3,
+      status: "ENROLLED",
+    },
+  });
+
+  // Withdrawn with zero payments ever made (vs. Emma's partial-then-withdrew).
+  const sofia = await prisma.student.create({
+    data: {
+      studentId: "SMS-2025-0013",
+      fullName: "Sofia Martinez",
+      email: "sofia.martinez@example.com",
+      dateOfBirth: new Date("2003-01-30"),
+      programmeId: business.id,
+      academicYear: 2,
+      status: "WITHDRAWN",
+    },
+  });
+
+  const noah = await prisma.student.create({
+    data: {
+      studentId: "SMS-2025-0014",
+      fullName: "Noah Kim",
+      email: "noah.kim@example.com",
+      dateOfBirth: new Date("2000-09-11"),
+      programmeId: dataScience.id,
+      academicYear: 2,
+      status: "COMPLETED",
+    },
+  });
+
   await prisma.payment.createMany({
     data: [
       { referenceNumber: "PMT-2026-000001", studentId: alice.id, amount: 5000, paidAt: new Date("2026-06-15") },
@@ -126,6 +225,13 @@ async function main() {
       { referenceNumber: "PMT-2026-000003", studentId: emma.id, amount: 1000, paidAt: new Date("2026-06-10") },
       { referenceNumber: "PMT-2026-000004", studentId: farid.id, amount: 4000, paidAt: new Date("2026-06-01") },
       { referenceNumber: "PMT-2026-000005", studentId: grace.id, amount: 3000, paidAt: new Date("2026-06-18") },
+      // Isla pays in two installments rather than one lump sum.
+      { referenceNumber: "PMT-2026-000006", studentId: isla.id, amount: 2000, paidAt: new Date("2026-06-05") },
+      { referenceNumber: "PMT-2026-000007", studentId: isla.id, amount: 1500, paidAt: new Date("2026-06-25") },
+      { referenceNumber: "PMT-2026-000008", studentId: jamal.id, amount: 4000, paidAt: new Date("2026-06-12") },
+      { referenceNumber: "PMT-2026-000009", studentId: fatima.id, amount: 2000, paidAt: new Date("2026-06-08") },
+      { referenceNumber: "PMT-2026-000010", studentId: liam.id, amount: 5000, paidAt: new Date("2026-06-22") },
+      { referenceNumber: "PMT-2026-000011", studentId: noah.id, amount: 6000, paidAt: new Date("2026-05-20") },
     ],
   });
 
@@ -147,7 +253,7 @@ async function main() {
     },
   });
 
-  // Deadline in the future relative to the other two: still open for submissions.
+  // Deadline in the future: still open for submissions.
   const businessEthicsEssay = await prisma.assessment.create({
     data: {
       title: "Business Ethics Essay",
@@ -157,23 +263,56 @@ async function main() {
     },
   });
 
+  // Past deadline but deliberately left with zero submissions, demonstrates
+  // the "no submissions yet" empty state rather than every assessment having data.
+  const marketingQuiz = await prisma.assessment.create({
+    data: {
+      title: "Marketing Fundamentals Quiz",
+      module: "Marketing Fundamentals",
+      programmeId: business.id,
+      deadline: new Date("2026-07-10T23:59:00Z"),
+    },
+  });
+
+  const machineLearningFundamentals = await prisma.assessment.create({
+    data: {
+      title: "Machine Learning Fundamentals",
+      module: "Machine Learning",
+      programmeId: dataScience.id,
+      deadline: new Date("2026-08-20T23:59:00Z"),
+    },
+  });
+
   // Individual creates (not createMany) so each submission's updatedAt can be
   // explicitly backdated to its intended illustrative date. Without this,
-  // every row defaults to "now", which is after every deadline below, and
-  // the "late" flag (computed from updatedAt vs. assessment.deadline) would
-  // incorrectly mark everything late rather than just the intended examples.
+  // every row defaults to "now", which is after every past deadline below,
+  // and the "late" flag (computed from updatedAt vs. assessment.deadline)
+  // would incorrectly mark everything late rather than just the intended examples.
   const submissionSeeds = [
-    // On time (Data Structures deadline was 2026-07-20).
+    // Data Structures Assignment 1 (deadline 2026-07-20).
     { assessmentId: dataStructuresAssignment.id, studentId: alice.id, fileUrl: "/uploads/alice-ds-assignment1.pdf", fileName: "alice-ds-assignment1.pdf", fileType: "PDF" as const, submittedAt: "2026-07-18T14:00:00Z" },
-    // Late: submitted after the 2026-07-20 deadline.
+    // Late: submitted after the deadline.
     { assessmentId: dataStructuresAssignment.id, studentId: brian.id, fileUrl: "/uploads/brian-ds-assignment1.docx", fileName: "brian-ds-assignment1.docx", fileType: "DOCX" as const, submittedAt: "2026-07-22T10:00:00Z" },
     { assessmentId: dataStructuresAssignment.id, studentId: grace.id, fileUrl: "/uploads/grace-ds-assignment1.pdf", fileName: "grace-ds-assignment1.pdf", fileType: "PDF" as const, submittedAt: "2026-07-19T09:00:00Z" },
-    // On time (Algorithms Midterm deadline was 2026-07-25).
+    { assessmentId: dataStructuresAssignment.id, studentId: isla.id, fileUrl: "/uploads/isla-ds-assignment1.pdf", fileName: "isla-ds-assignment1.pdf", fileType: "PDF" as const, submittedAt: "2026-07-17T12:00:00Z" },
+    { assessmentId: dataStructuresAssignment.id, studentId: liam.id, fileUrl: "/uploads/liam-ds-assignment1.docx", fileName: "liam-ds-assignment1.docx", fileType: "DOCX" as const, submittedAt: "2026-07-20T20:00:00Z" },
+
+    // Algorithms Midterm (deadline 2026-07-25).
     { assessmentId: algorithmsMidterm.id, studentId: alice.id, fileUrl: "/uploads/alice-algorithms-midterm.pdf", fileName: "alice-algorithms-midterm.pdf", fileType: "PDF" as const, submittedAt: "2026-07-24T11:00:00Z" },
     { assessmentId: algorithmsMidterm.id, studentId: brian.id, fileUrl: "/uploads/brian-algorithms-midterm.pdf", fileName: "brian-algorithms-midterm.pdf", fileType: "PDF" as const, submittedAt: "2026-07-24T15:00:00Z" },
     { assessmentId: algorithmsMidterm.id, studentId: grace.id, fileUrl: "/uploads/grace-algorithms-midterm.pdf", fileName: "grace-algorithms-midterm.pdf", fileType: "PDF" as const, submittedAt: "2026-07-23T16:00:00Z" },
-    // On time (Business Ethics Essay deadline is 2026-08-15, still open).
+    { assessmentId: algorithmsMidterm.id, studentId: isla.id, fileUrl: "/uploads/isla-algorithms-midterm.pdf", fileName: "isla-algorithms-midterm.pdf", fileType: "PDF" as const, submittedAt: "2026-07-25T18:00:00Z" },
+    // Late: submitted the day after the deadline.
+    { assessmentId: algorithmsMidterm.id, studentId: liam.id, fileUrl: "/uploads/liam-algorithms-midterm.docx", fileName: "liam-algorithms-midterm.docx", fileType: "DOCX" as const, submittedAt: "2026-07-26T09:00:00Z" },
+
+    // Business Ethics Essay (deadline 2026-08-15, still open).
     { assessmentId: businessEthicsEssay.id, studentId: carla.id, fileUrl: "/uploads/carla-business-ethics-essay.docx", fileName: "carla-business-ethics-essay.docx", fileType: "DOCX" as const, submittedAt: "2026-08-01T13:00:00Z" },
+    { assessmentId: businessEthicsEssay.id, studentId: jamal.id, fileUrl: "/uploads/jamal-business-ethics-essay.pdf", fileName: "jamal-business-ethics-essay.pdf", fileType: "PDF" as const, submittedAt: "2026-08-02T10:00:00Z" },
+
+    // Machine Learning Fundamentals (deadline 2026-08-20, still open).
+    { assessmentId: machineLearningFundamentals.id, studentId: henry.id, fileUrl: "/uploads/henry-machine-learning.pdf", fileName: "henry-machine-learning.pdf", fileType: "PDF" as const, submittedAt: "2026-08-02T09:00:00Z" },
+
+    // Marketing Fundamentals Quiz: deliberately no submissions at all.
   ];
 
   // The API writes real uploaded files to public/uploads/; seeded submissions
@@ -191,37 +330,30 @@ async function main() {
     });
   }
 
-  await prisma.grade.create({
-    data: {
-      assessmentId: algorithmsMidterm.id,
-      studentId: alice.id,
-      score: 78.5,
-      isPublished: true,
-      publishedAt: new Date("2026-07-28"),
-    },
+  // Grades deliberately cover all four classifications (Fail/Pass/Merit/Distinction)
+  // in both published and withheld states, and Data Structures Assignment 1 is left
+  // partially graded (Liam's submission ungraded) to show that realistic in-progress state too.
+  await prisma.grade.createMany({
+    data: [
+      // Algorithms Midterm
+      { assessmentId: algorithmsMidterm.id, studentId: alice.id, score: 78.5, isPublished: true, publishedAt: new Date("2026-07-28") },
+      { assessmentId: algorithmsMidterm.id, studentId: brian.id, score: 65.0, isPublished: true, publishedAt: new Date("2026-07-28") },
+      { assessmentId: algorithmsMidterm.id, studentId: grace.id, score: 35.0, isPublished: false },
+      { assessmentId: algorithmsMidterm.id, studentId: isla.id, score: 55.0, isPublished: true, publishedAt: new Date("2026-07-29") },
+      { assessmentId: algorithmsMidterm.id, studentId: liam.id, score: 82.0, isPublished: false },
+
+      // Data Structures Assignment 1
+      { assessmentId: dataStructuresAssignment.id, studentId: alice.id, score: 48.0, isPublished: true, publishedAt: new Date("2026-07-23") },
+      { assessmentId: dataStructuresAssignment.id, studentId: brian.id, score: 71.0, isPublished: true, publishedAt: new Date("2026-07-23") },
+      { assessmentId: dataStructuresAssignment.id, studentId: grace.id, score: 60.0, isPublished: false },
+      { assessmentId: dataStructuresAssignment.id, studentId: isla.id, score: 38.5, isPublished: true, publishedAt: new Date("2026-07-24") },
+      // Liam's Data Structures submission is left ungraded on purpose.
+    ],
   });
 
-  await prisma.grade.create({
-    data: {
-      assessmentId: algorithmsMidterm.id,
-      studentId: brian.id,
-      score: 65.0,
-      isPublished: true,
-      publishedAt: new Date("2026-07-28"),
-    },
-  });
-
-  // Withheld: graded, but not yet visible to the student.
-  await prisma.grade.create({
-    data: {
-      assessmentId: algorithmsMidterm.id,
-      studentId: grace.id,
-      score: 35.0,
-      isPublished: false,
-    },
-  });
-
-  console.log("Seed complete: 2 programmes, 7 students, 5 payments, 3 assessments, 7 submissions, 3 grades.");
+  console.log(
+    "Seed complete: 3 programmes, 14 students, 11 payments, 5 assessments, 13 submissions, 9 grades."
+  );
 }
 
 main()
