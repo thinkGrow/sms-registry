@@ -69,6 +69,15 @@ export default async function AssessmentDetailPage({
   const canCurrentStudentSubmit =
     session.role === "STUDENT" && isCorrectProgramme && isEnrolled;
 
+  const currentStudentSubmission =
+    session.role === "STUDENT"
+      ? assessment.submissions.find((s) => s.studentId === session.studentId)
+      : undefined;
+  const currentStudentGrade =
+    session.role === "STUDENT"
+      ? assessment.grades.find((g) => g.studentId === session.studentId)
+      : undefined;
+
   const visibleSubmissions = isStaff
     ? assessment.submissions
     : assessment.submissions.filter(
@@ -143,7 +152,31 @@ export default async function AssessmentDetailPage({
           </CardHeader>
           <CardContent>
             {canCurrentStudentSubmit && session.role === "STUDENT" ? (
-              <SubmissionForm assessmentId={assessment.id} studentId={session.studentId} />
+              <div className="space-y-3">
+                {currentStudentSubmission && (
+                  <p className="text-muted-foreground text-sm">
+                    You already submitted{" "}
+                    <span className="font-medium">{currentStudentSubmission.fileName}</span> on{" "}
+                    {new Date(currentStudentSubmission.updatedAt).toLocaleString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    . Submitting again will replace it
+                    {currentStudentGrade
+                      ? ", and your current grade may no longer reflect the new file"
+                      : ""}
+                    .
+                  </p>
+                )}
+                <SubmissionForm
+                  assessmentId={assessment.id}
+                  studentId={session.studentId}
+                  hasExistingSubmission={Boolean(currentStudentSubmission)}
+                />
+              </div>
             ) : (
               <p className="text-muted-foreground text-sm">
                 {!isCorrectProgramme

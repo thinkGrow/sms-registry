@@ -8,20 +8,27 @@ import { Label } from "@/components/ui/label";
 export function SubmissionForm({
   assessmentId,
   studentId,
+  hasExistingSubmission,
 }: {
   assessmentId: string;
   // Students only ever submit as themselves; there's no staff "submit on
   // behalf of a student" path anymore, so this is always the current student.
   studentId: string;
+  // Whether this student already has a submission on this assessment, so the
+  // form can call this a resubmission (and warn that it replaces the old
+  // file) rather than a first-time submission.
+  hasExistingSubmission: boolean;
 }) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
 
     if (!file) {
       setError("Choose a PDF or DOCX file");
@@ -47,6 +54,11 @@ export function SubmissionForm({
     }
 
     setFile(null);
+    setSuccess(
+      hasExistingSubmission
+        ? "Resubmitted. This replaced your previous file."
+        : "Submitted."
+    );
     router.refresh();
   }
 
@@ -58,7 +70,10 @@ export function SubmissionForm({
           id="file"
           type="file"
           accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            setFile(e.target.files?.[0] ?? null);
+            setSuccess(null);
+          }}
           className="text-sm"
         />
       </div>
@@ -68,6 +83,7 @@ export function SubmissionForm({
       </Button>
 
       {error && <p className="text-destructive text-sm">{error}</p>}
+      {success && <p className="text-success text-sm">{success}</p>}
     </form>
   );
 }
