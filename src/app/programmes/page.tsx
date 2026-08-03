@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getYearlyFeeBreakdown, TOTAL_INSTALLMENTS } from "@/lib/balance";
+import { getSession } from "@/lib/session";
 
 const degreeLevelLabels = {
   BACHELORS: "Bachelor's",
@@ -12,6 +13,9 @@ const degreeLevelLabels = {
 } as const;
 
 export default async function ProgrammesPage() {
+  const session = await getSession();
+  const isStaff = session.role === "STAFF";
+
   const programmes = await prisma.programme.findMany({
     include: { _count: { select: { students: true } } },
     orderBy: { name: "asc" },
@@ -41,7 +45,7 @@ export default async function ProgrammesPage() {
                   <TableHead>Degree Level</TableHead>
                   <TableHead>Total Fee</TableHead>
                   <TableHead>Per Year</TableHead>
-                  <TableHead>Students</TableHead>
+                  {isStaff && <TableHead>Students</TableHead>}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -65,7 +69,7 @@ export default async function ProgrammesPage() {
                       <TableCell>
                         ${breakdown[0].amount.toFixed(2)} × {TOTAL_INSTALLMENTS[programme.degreeLevel]} years
                       </TableCell>
-                      <TableCell>{programme._count.students}</TableCell>
+                      {isStaff && <TableCell>{programme._count.students}</TableCell>}
                       <TableCell className="text-right">
                         <Button
                           variant="outline"

@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { getSession } from "@/lib/session";
 
 const degreeLevelLabels = {
   BACHELORS: "Bachelor's",
@@ -25,6 +26,9 @@ export default async function ProgrammeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const session = await getSession();
+  const isStaff = session.role === "STAFF";
 
   const programme = await prisma.programme.findUnique({
     where: { id },
@@ -76,17 +80,19 @@ export default async function ProgrammeDetailPage({
                 )}
               </dd>
             </div>
-            <div className="grid grid-cols-3 gap-4 py-3 text-sm">
-              <dt className="text-muted-foreground">Students</dt>
-              <dd className="col-span-2">
-                <Link
-                  href={`/students?programmeId=${programme.id}`}
-                  className="hover:underline"
-                >
-                  {programme._count.students} enrolled
-                </Link>
-              </dd>
-            </div>
+            {isStaff && (
+              <div className="grid grid-cols-3 gap-4 py-3 text-sm">
+                <dt className="text-muted-foreground">Students</dt>
+                <dd className="col-span-2">
+                  <Link
+                    href={`/students?programmeId=${programme.id}`}
+                    className="hover:underline"
+                  >
+                    {programme._count.students} enrolled
+                  </Link>
+                </dd>
+              </div>
+            )}
           </dl>
         </CardContent>
       </Card>
