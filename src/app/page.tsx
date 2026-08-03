@@ -48,7 +48,7 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-muted-foreground text-sm font-normal">
-              Overdue Balances
+              Overdue Fees
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -59,12 +59,12 @@ export default async function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Students with Overdue Balances</CardTitle>
+          <CardTitle>Students with Overdue Fees</CardTitle>
         </CardHeader>
         <CardContent>
           {overdue.length === 0 ? (
             <p className="text-muted-foreground text-sm">
-              No overdue balances right now.
+              No overdue fees right now.
             </p>
           ) : (
             <ul className="divide-border divide-y">

@@ -55,7 +55,7 @@ export function PaymentsSection({
               Paid: <span className="font-medium">${balance.totalPaid.toFixed(2)}</span>
             </span>
             <span>
-              Balance:{" "}
+              Outstanding fees:{" "}
               <span className="font-medium">${balance.balance.toFixed(2)}</span>
             </span>
             <span>
