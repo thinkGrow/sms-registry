@@ -1,4 +1,8 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { prisma } from "../src/lib/prisma";
+
+const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
 async function main() {
   // Clear existing data (reverse dependency order) so this script is safe to re-run.
@@ -172,7 +176,16 @@ async function main() {
     { assessmentId: businessEthicsEssay.id, studentId: carla.id, fileUrl: "/uploads/carla-business-ethics-essay.docx", fileName: "carla-business-ethics-essay.docx", fileType: "DOCX" as const, submittedAt: "2026-08-01T13:00:00Z" },
   ];
 
+  // The API writes real uploaded files to public/uploads/; seeded submissions
+  // reference paths there too, so write a placeholder file for each one -
+  // otherwise the "view file" link in the UI 404s for anything from the seed.
+  await mkdir(UPLOAD_DIR, { recursive: true });
+
   for (const { submittedAt, ...data } of submissionSeeds) {
+    await writeFile(
+      path.join(UPLOAD_DIR, path.basename(data.fileUrl)),
+      `Placeholder seed file for ${data.fileName}`
+    );
     await prisma.submission.create({
       data: { ...data, createdAt: new Date(submittedAt), updatedAt: new Date(submittedAt) },
     });

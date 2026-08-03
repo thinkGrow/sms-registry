@@ -105,10 +105,15 @@ export default async function StudentDetailPage({
   ];
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="mx-auto max-w-7xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         {isStaff ? (
-          <Button variant="ghost" size="sm" render={<Link href="/students" />}>
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/students" />}
+          >
             Back to Students
           </Button>
         ) : (

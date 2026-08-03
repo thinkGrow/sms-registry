@@ -79,9 +79,14 @@ export default async function AssessmentDetailPage({
   const isPastDeadline = new Date() > deadline;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
+    <div className="mx-auto max-w-7xl space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" render={<Link href="/assessments" />}>
+        <Button
+          variant="ghost"
+          size="sm"
+          nativeButton={false}
+          render={<Link href="/assessments" />}
+        >
           Back to Assessments
         </Button>
         {isStaff && (

@@ -16,3 +16,4 @@ export const paymentUpdateSchema = paymentCreateSchema.omit({ studentId: true })
 
 export type PaymentCreateInput = z.infer<typeof paymentCreateSchema>;
 export type PaymentUpdateInput = z.infer<typeof paymentUpdateSchema>;
+
