@@ -39,6 +39,7 @@ export function GradesSection({
   const router = useRouter();
   const [scores, setScores] = useState<Record<string, string>>({});
   const [savingFor, setSavingFor] = useState<string | null>(null);
+  const [savedFor, setSavedFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function saveScore(studentId: string) {
@@ -49,6 +50,7 @@ export function GradesSection({
       return;
     }
     setError(null);
+    setSavedFor(null);
     setSavingFor(studentId);
     const response = await fetch("/api/grades", {
       method: "POST",
@@ -61,6 +63,7 @@ export function GradesSection({
       setError(body?.error?.fieldErrors?.score?.[0] ?? body?.error ?? "Something went wrong");
       return;
     }
+    setSavedFor(studentId);
     router.refresh();
   }
 
@@ -115,9 +118,10 @@ export function GradesSection({
                     min={0}
                     max={100}
                     defaultValue={row.score ?? ""}
-                    onChange={(e) =>
-                      setScores((prev) => ({ ...prev, [row.studentId]: e.target.value }))
-                    }
+                    onChange={(e) => {
+                      setScores((prev) => ({ ...prev, [row.studentId]: e.target.value }));
+                      setSavedFor((current) => (current === row.studentId ? null : current));
+                    }}
                     className="w-20"
                   />
                 </TableCell>
@@ -135,7 +139,10 @@ export function GradesSection({
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell className="flex justify-end gap-2 text-right">
+                <TableCell className="flex items-center justify-end gap-2 text-right">
+                  {savedFor === row.studentId && (
+                    <span className="text-success text-xs">Saved</span>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
