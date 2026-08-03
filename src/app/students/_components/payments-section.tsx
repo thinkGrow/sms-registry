@@ -46,35 +46,29 @@ export function PaymentsSection({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {canManage ? (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <span>
-              Fee: <span className="font-medium">${balance.feeAmount.toFixed(2)}</span>
-            </span>
-            <span>
-              Paid: <span className="font-medium">${balance.totalPaid.toFixed(2)}</span>
-            </span>
-            <span>
-              Outstanding fees:{" "}
-              <span className="font-medium">${balance.balance.toFixed(2)}</span>
-            </span>
-            <span>
-              Installment {balance.installmentsDueByNow} of {balance.totalInstallments}
-              {": "}
-              <span className="font-medium">${balance.installmentAmount.toFixed(2)}</span>
-              /year
-            </span>
-            {balance.isOverdue && (
-              <Badge variant="destructive">
-                Overdue (${balance.amountOwedByNow.toFixed(2)})
-              </Badge>
-            )}
-          </div>
-        ) : (
-          // Students don't see their balance or overdue status, only staff
-          // do; a student can still pay via "Make a Payment" without it.
-          <div />
-        )}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <span>
+            Fee: <span className="font-medium">${balance.feeAmount.toFixed(2)}</span>
+          </span>
+          <span>
+            Paid: <span className="font-medium">${balance.totalPaid.toFixed(2)}</span>
+          </span>
+          <span>
+            Outstanding fees:{" "}
+            <span className="font-medium">${balance.balance.toFixed(2)}</span>
+          </span>
+          <span>
+            Installment {balance.installmentsDueByNow} of {balance.totalInstallments}
+            {": "}
+            <span className="font-medium">${balance.installmentAmount.toFixed(2)}</span>
+            /year
+          </span>
+          {balance.isOverdue && (
+            <Badge variant="destructive">
+              Overdue (${balance.amountOwedByNow.toFixed(2)})
+            </Badge>
+          )}
+        </div>
         {canManage && <PaymentFormDialog studentId={studentId} />}
         {canPayOnline && <OnlinePaymentDialog studentId={studentId} />}
       </div>
