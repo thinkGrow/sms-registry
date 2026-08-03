@@ -12,14 +12,27 @@ datasource db {
   provider = "postgresql"
 }
 
+enum DegreeLevel {
+  BACHELORS
+  MASTERS
+}
+
 model Programme {
   id        String   @id @default(cuid())
   name      String   @unique
   feeAmount Decimal  @db.Decimal(10, 2)
 
-  // Date the programme's fee is due each cycle. Nullable: a programme with no
-  // due date set never flags its students as overdue, rather than defaulting
-  // to "always overdue" or "never overdue" silently.
+  // Determines the number of fee installments: 4 for a Bachelor's (one per
+  // year of a 4-year programme), 2 for a Master's (one per year of a 2-year
+  // programme). See balance.ts for how this drives the per-student schedule.
+  degreeLevel DegreeLevel
+
+  // Whether fee due dates apply to this programme at all. Nullable: a
+  // programme with no due date set never flags its students as overdue,
+  // rather than defaulting to "always overdue" or "never overdue" silently.
+  // When set, the actual per-installment due dates are computed from each
+  // student's own enrolmentDate, not this field's value directly, since two
+  // students in the same programme can start at completely different times.
   feeDueDate DateTime? @db.Date
 
   students    Student[]
@@ -41,6 +54,12 @@ model Student {
   fullName    String
   email       String   @unique
   dateOfBirth DateTime @db.Date
+
+  // When this student actually started the programme. Anchors their personal
+  // fee installment schedule (see balance.ts), separate from createdAt, which
+  // only reflects when this database record was created, not necessarily
+  // when their studies began.
+  enrolmentDate DateTime @db.Date
 
   programmeId String
   programme   Programme @relation(fields: [programmeId], references: [id])

@@ -57,7 +57,17 @@ export function PaymentsSection({
             Balance:{" "}
             <span className="font-medium">${balance.balance.toFixed(2)}</span>
           </span>
-          {balance.isOverdue && <Badge variant="destructive">Overdue</Badge>}
+          <span>
+            Installment {balance.installmentsDueByNow} of {balance.totalInstallments}
+            {": "}
+            <span className="font-medium">${balance.installmentAmount.toFixed(2)}</span>
+            /year
+          </span>
+          {balance.isOverdue && (
+            <Badge variant="destructive">
+              Overdue (${balance.amountOwedByNow.toFixed(2)})
+            </Badge>
+          )}
         </div>
         {canManage && <PaymentFormDialog studentId={studentId} />}
         {canPayOnline && <OnlinePaymentDialog studentId={studentId} />}

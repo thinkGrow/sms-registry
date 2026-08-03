@@ -29,6 +29,7 @@ erDiagram
         string id PK
         string name
         decimal feeAmount
+        string degreeLevel
         date feeDueDate
     }
     Student {
@@ -37,6 +38,7 @@ erDiagram
         string fullName
         string email
         date dateOfBirth
+        date enrolmentDate
         string programmeId FK
         int academicYear
         string status
@@ -83,7 +85,9 @@ This diagram is maintained by hand in this README and updated as models are adde
 - **`academicYear` is staff-editable, not derived.** It represents year of study (1st/2nd/3rd...), not intake year, and isn't computed from enrolment date because a retake can put a student in the same academic year across two sessions.
 - **Payment reference numbers are auto-generated, not staff-entered.** This app doesn't integrate with a real payment gateway or bank, so there's no external reference number flowing in from anywhere to capture. The system generates its own (e.g. `PMT-2026-000001`), which sidesteps staff typos and uniqueness conflicts entirely.
 - **Payments are ordinary CRUD, not an accounting ledger.** Staff can edit or delete a recorded payment directly to fix a mistake. A real accounting system would use immutable entries with reversal/adjustment records to preserve a full audit trail instead of allowing direct edits — that's out of scope here given the assessment's timeframe.
-- **"Overdue" is defined per-programme, not per-student or by enrolment date.** A balance is overdue when it's greater than zero and today is past that programme's `feeDueDate`. A programme with no due date set never flags its students as overdue, rather than defaulting to always/never overdue silently.
+- **Fees are billed in installments, one per year of study, not as a single lump sum.** A Bachelor's programme splits its fee into 4 installments (`degreeLevel: BACHELORS`), a Master's into 2 (`MASTERS`). This exists because a flat "pay the whole programme fee once" model doesn't reflect how tuition is actually charged, and doesn't account for a student progressing to their next academic year at all.
+- **Each student's installment schedule is anchored to their own `enrolmentDate`, not a single shared programme due date.** Two students in the same programme can have started at completely different times, so `Programme.feeDueDate` only acts as an on/off switch for whether overdue tracking applies to that programme at all (null = never overdue, e.g. for a programme with no formal fee schedule); the actual per-installment due dates are computed per student as one year after the last, starting from their own enrolment date.
+- **"Overdue" means behind on installments actually due by now, not behind on the full fee.** A student who has paid more than what's cumulatively due for their current year isn't overdue, even if they haven't paid the programme's full fee yet, that portion isn't due yet. Conversely, a student who has paid a lot up front can still show as "not overdue" while genuinely owing money overall, since the overdue flag only reflects the installment schedule, not the total remaining balance (both are shown separately in the UI).
 - **Assessments are scoped to a programme, not a specific module registration.** `Assessment.programmeId` restricts submission eligibility to students in that programme. This is a real gap we chose not to close: a full implementation would need a separate `Module` entity, a student-to-module registration record (since not every student in a programme takes every module, electives and exemptions exist), and module prerequisites (e.g. can't take "Algorithms II" without passing "Data Structures"). All three are out of scope here, since building them would mean a new registration workflow beyond the four described in the assessment, not just a schema addition.
 - **Deadlines are full timestamps, not dates.** `Assessment.deadline` includes a time of day, since whether a submission is "late" depends on an exact cutoff, unlike, say, date of birth where time of day is meaningless.
 - **Resubmission overwrites the existing record.** `Submission` has a unique constraint on `(studentId, assessmentId)`, so a resubmission updates the same row (new file, new timestamp) rather than preserving every past attempt. No submission history/versioning is kept.

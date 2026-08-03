@@ -57,6 +57,7 @@ export function StudentFormDialog({
           fullName: student.fullName,
           email: student.email,
           dateOfBirth: new Date(student.dateOfBirth),
+          enrolmentDate: new Date(student.enrolmentDate),
           programmeId: student.programmeId,
           academicYear: student.academicYear,
           status: student.status,
@@ -147,6 +148,29 @@ export function StudentFormDialog({
             />
             {errors.dateOfBirth && (
               <p className="text-destructive text-sm">{errors.dateOfBirth.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="enrolmentDate">Enrolment date</Label>
+            <Controller
+              name="enrolmentDate"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  id="enrolmentDate"
+                  type="date"
+                  value={
+                    field.value ? new Date(field.value).toISOString().slice(0, 10) : ""
+                  }
+                  onChange={(e) =>
+                    field.onChange(e.target.value ? new Date(e.target.value) : undefined)
+                  }
+                />
+              )}
+            />
+            {errors.enrolmentDate && (
+              <p className="text-destructive text-sm">{errors.enrolmentDate.message}</p>
             )}
           </div>
 

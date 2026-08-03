@@ -11,6 +11,7 @@ export const studentCreateSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
   email: z.string().email("Must be a valid email address"),
   dateOfBirth: z.coerce.date(),
+  enrolmentDate: z.coerce.date(),
   programmeId: z.string().min(1, "Programme is required"),
   academicYear: z.number().int().positive(),
   status: z.enum(enrolmentStatusValues).default("ENROLLED"),

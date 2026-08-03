@@ -17,6 +17,7 @@ async function main() {
     data: {
       name: "BSc Computer Science",
       feeAmount: 5000,
+      degreeLevel: "BACHELORS",
       feeDueDate: new Date("2026-07-01"),
     },
   });
@@ -25,6 +26,7 @@ async function main() {
     data: {
       name: "BA Business Administration",
       feeAmount: 4000,
+      degreeLevel: "BACHELORS",
       feeDueDate: new Date("2026-07-01"),
     },
   });
@@ -35,6 +37,7 @@ async function main() {
     data: {
       name: "MSc Data Science",
       feeAmount: 6000,
+      degreeLevel: "MASTERS",
       feeDueDate: null,
     },
   });
@@ -45,19 +48,22 @@ async function main() {
       fullName: "Alice Johnson",
       email: "alice.johnson@example.com",
       dateOfBirth: new Date("2003-04-12"),
+      enrolmentDate: new Date("2025-09-15"),
       programmeId: cs.id,
       academicYear: 1,
       status: "ENROLLED",
     },
   });
 
-  // Partial payment, past the due date: appears overdue on the dashboard.
+  // Partial payment: 2 years in, so 2 installments (of 4) are due by now, and
+  // only enough has been paid to cover a bit less than one, appears overdue.
   const brian = await prisma.student.create({
     data: {
       studentId: "SMS-2025-0002",
       fullName: "Brian Smith",
       email: "brian.smith@example.com",
       dateOfBirth: new Date("2002-11-05"),
+      enrolmentDate: new Date("2024-09-15"),
       programmeId: cs.id,
       academicYear: 2,
       status: "ENROLLED",
@@ -71,19 +77,21 @@ async function main() {
       fullName: "Carla Davis",
       email: "carla.davis@example.com",
       dateOfBirth: new Date("2004-02-20"),
+      enrolmentDate: new Date("2025-09-15"),
       programmeId: business.id,
       academicYear: 1,
       status: "ENROLLED",
     },
   });
 
-  // Deferred, unpaid: exercises the enrolment status filter alongside a balance.
+  // Deferred, unpaid, 3 years in: 3 of 4 installments due, all unpaid, overdue.
   const david = await prisma.student.create({
     data: {
       studentId: "SMS-2025-0004",
       fullName: "David Lee",
       email: "david.lee@example.com",
       dateOfBirth: new Date("2001-08-30"),
+      enrolmentDate: new Date("2023-09-15"),
       programmeId: business.id,
       academicYear: 3,
       status: "DEFERRED",
@@ -97,6 +105,7 @@ async function main() {
       fullName: "Emma Wilson",
       email: "emma.wilson@example.com",
       dateOfBirth: new Date("2003-06-15"),
+      enrolmentDate: new Date("2025-09-15"),
       programmeId: cs.id,
       academicYear: 1,
       status: "WITHDRAWN",
@@ -109,6 +118,7 @@ async function main() {
       fullName: "Farid Khan",
       email: "farid.khan@example.com",
       dateOfBirth: new Date("2000-01-10"),
+      enrolmentDate: new Date("2024-09-15"),
       programmeId: business.id,
       academicYear: 2,
       status: "COMPLETED",
@@ -122,6 +132,7 @@ async function main() {
       fullName: "Grace Chen",
       email: "grace.chen@example.com",
       dateOfBirth: new Date("2002-09-25"),
+      enrolmentDate: new Date("2023-09-15"),
       programmeId: cs.id,
       academicYear: 3,
       status: "ENROLLED",
@@ -136,19 +147,23 @@ async function main() {
       fullName: "Henry Osei",
       email: "henry.osei@example.com",
       dateOfBirth: new Date("2001-03-02"),
+      enrolmentDate: new Date("2025-09-15"),
       programmeId: dataScience.id,
       academicYear: 1,
       status: "ENROLLED",
     },
   });
 
-  // Pays in two installments rather than a single lump sum.
+  // Pays in two installments rather than a single lump sum; paid enough to
+  // cover both installments due so far (2 years in), so not overdue despite
+  // not having paid the full programme fee yet.
   const isla = await prisma.student.create({
     data: {
       studentId: "SMS-2025-0009",
       fullName: "Isla Thompson",
       email: "isla.thompson@example.com",
       dateOfBirth: new Date("2003-10-08"),
+      enrolmentDate: new Date("2024-09-15"),
       programmeId: cs.id,
       academicYear: 2,
       status: "ENROLLED",
@@ -162,6 +177,7 @@ async function main() {
       fullName: "Jamal Bakr",
       email: "jamal.bakr@example.com",
       dateOfBirth: new Date("2000-12-19"),
+      enrolmentDate: new Date("2022-09-15"),
       programmeId: business.id,
       academicYear: 4,
       status: "ENROLLED",
@@ -175,6 +191,7 @@ async function main() {
       fullName: "Fatima Noor",
       email: "fatima.noor@example.com",
       dateOfBirth: new Date("2002-07-14"),
+      enrolmentDate: new Date("2025-09-15"),
       programmeId: dataScience.id,
       academicYear: 1,
       status: "DEFERRED",
@@ -187,6 +204,7 @@ async function main() {
       fullName: "Liam O'Connor",
       email: "liam.oconnor@example.com",
       dateOfBirth: new Date("2002-05-27"),
+      enrolmentDate: new Date("2023-09-15"),
       programmeId: cs.id,
       academicYear: 3,
       status: "ENROLLED",
@@ -200,6 +218,7 @@ async function main() {
       fullName: "Sofia Martinez",
       email: "sofia.martinez@example.com",
       dateOfBirth: new Date("2003-01-30"),
+      enrolmentDate: new Date("2024-09-15"),
       programmeId: business.id,
       academicYear: 2,
       status: "WITHDRAWN",
@@ -212,6 +231,7 @@ async function main() {
       fullName: "Noah Kim",
       email: "noah.kim@example.com",
       dateOfBirth: new Date("2000-09-11"),
+      enrolmentDate: new Date("2024-09-15"),
       programmeId: dataScience.id,
       academicYear: 2,
       status: "COMPLETED",

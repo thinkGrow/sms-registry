@@ -83,6 +83,7 @@ export default async function StudentDetailPage({
     { label: "Full name", value: student.fullName },
     { label: "Email", value: student.email },
     { label: "Date of birth", value: formatDate(student.dateOfBirth) },
+    { label: "Enrolment date", value: formatDate(student.enrolmentDate) },
     { label: "Programme", value: student.programme.name },
     { label: "Academic year", value: student.academicYear },
     {
