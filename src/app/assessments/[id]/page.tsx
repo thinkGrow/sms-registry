@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { AssessmentFormDialog } from "../_components/assessment-form-dialog";
 import { SubmissionForm } from "../_components/submission-form";
+import { GradesSection } from "../_components/grades-section";
 
 export default async function AssessmentDetailPage({
   params,
@@ -28,12 +29,24 @@ export default async function AssessmentDetailPage({
     include: {
       programme: true,
       submissions: { include: { student: true }, orderBy: { updatedAt: "desc" } },
+      grades: true,
     },
   });
 
   if (!assessment) {
     notFound();
   }
+
+  const gradeRows = assessment.submissions.map((submission) => {
+    const grade = assessment.grades.find((g) => g.studentId === submission.studentId);
+    return {
+      studentId: submission.studentId,
+      studentName: submission.student.fullName,
+      gradeId: grade?.id ?? null,
+      score: grade ? Number(grade.score) : null,
+      isPublished: grade?.isPublished ?? false,
+    };
+  });
 
   const eligibleStudentRecords = await prisma.student.findMany({
     where: { programmeId: assessment.programmeId, status: "ENROLLED" },
@@ -169,6 +182,15 @@ export default async function AssessmentDetailPage({
               </TableBody>
             </Table>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Grades</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <GradesSection assessmentId={assessment.id} rows={gradeRows} />
         </CardContent>
       </Card>
     </div>

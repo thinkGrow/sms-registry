@@ -12,6 +12,19 @@ import {
   enrolmentStatusBadgeVariant,
   enrolmentStatusLabels,
 } from "@/lib/student-status";
+import {
+  classifyGrade,
+  classificationLabels,
+  classificationBadgeVariant,
+} from "@/lib/classification";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function formatDate(date: Date) {
   return new Date(date).toLocaleDateString("en-GB", {
@@ -31,7 +44,11 @@ export default async function StudentDetailPage({
   const [student, programmes] = await Promise.all([
     prisma.student.findUnique({
       where: { id },
-      include: { programme: true, payments: { orderBy: { paidAt: "desc" } } },
+      include: {
+        programme: true,
+        payments: { orderBy: { paidAt: "desc" } },
+        grades: { include: { assessment: true }, orderBy: { updatedAt: "desc" } },
+      },
     }),
     prisma.programme.findMany({ orderBy: { name: "asc" } }),
   ]);
@@ -109,6 +126,64 @@ export default async function StudentDetailPage({
             payments={serializedPayments}
             balance={balance}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Marksheet</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {student.grades.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No grades recorded yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Assessment</TableHead>
+                  <TableHead>Score</TableHead>
+                  <TableHead>Classification</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {student.grades.map((grade) => {
+                  const score = Number(grade.score);
+                  const classification = classifyGrade(score);
+                  return (
+                    <TableRow key={grade.id}>
+                      <TableCell>
+                        <Link
+                          href={`/assessments/${grade.assessmentId}`}
+                          className="hover:underline"
+                        >
+                          {grade.assessment.title}
+                        </Link>
+                        <div className="text-muted-foreground text-xs">
+                          {grade.assessment.module}
+                        </div>
+                      </TableCell>
+                      <TableCell>{score}</TableCell>
+                      <TableCell>
+                        <Badge variant={classificationBadgeVariant[classification]}>
+                          {classificationLabels[classification]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={grade.isPublished ? "success" : "secondary"}>
+                          {grade.isPublished ? "Published" : "Withheld"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+          <p className="text-muted-foreground mt-3 text-xs">
+            This view shows all grades for Registry staff. A student-facing view
+            (built in the next step) will only show published results.
+          </p>
         </CardContent>
       </Card>
     </div>
