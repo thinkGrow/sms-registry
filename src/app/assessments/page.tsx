@@ -187,7 +187,7 @@ export default async function AssessmentsPage() {
                               {isPast ? "Closed" : "Open"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="flex justify-end gap-2 text-right">
                             <Button
                               variant="outline"
                               size="sm"
@@ -198,6 +198,13 @@ export default async function AssessmentsPage() {
                             >
                               Details
                             </Button>
+                            {isStaff && (
+                              <AssessmentFormDialog
+                                key={`${assessment.id}-${assessment.updatedAt}`}
+                                programmes={serializedProgrammes}
+                                assessment={assessment}
+                              />
+                            )}
                           </TableCell>
                         </TableRow>
                       );
