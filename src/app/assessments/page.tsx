@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { serializeProgramme } from "@/lib/serialize";
 import { getSession } from "@/lib/session";
 import { AssessmentFormDialog } from "./_components/assessment-form-dialog";
@@ -58,6 +59,7 @@ export default async function AssessmentsPage() {
                   <TableHead>Deadline</TableHead>
                   <TableHead>Submissions</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -89,6 +91,16 @@ export default async function AssessmentsPage() {
                         <Badge variant={isPast ? "warning" : "success"}>
                           {isPast ? "Closed" : "Open"}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          nativeButton={false}
+                          render={<Link href={`/assessments/${assessment.id}`} />}
+                        >
+                          Details
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );

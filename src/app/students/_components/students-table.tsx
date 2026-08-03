@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { StudentFormDialog } from "./student-form-dialog";
 import {
   enrolmentStatusBadgeVariant,
@@ -71,7 +72,15 @@ export function StudentsTable({
               </Badge>
               {student.isOverdue && <Badge variant="destructive">Overdue</Badge>}
             </TableCell>
-            <TableCell className="text-right">
+            <TableCell className="flex justify-end gap-2 text-right">
+              <Button
+                variant="outline"
+                size="sm"
+                nativeButton={false}
+                render={<Link href={`/students/${student.id}`} />}
+              >
+                Details
+              </Button>
               <StudentFormDialog
                 key={`${student.id}-${student.updatedAt}`}
                 programmes={programmes}
