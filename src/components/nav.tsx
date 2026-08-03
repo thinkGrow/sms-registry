@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -14,8 +15,15 @@ import {
 } from "@/components/ui/select";
 import { switchToStaff, switchToStudent } from "@/lib/session-actions";
 import type { Session } from "@/lib/session";
+import { enrolmentStatusBadgeVariant, enrolmentStatusLabels } from "@/lib/student-status";
+import type { EnrolmentStatus } from "@/generated/prisma/enums";
 
-type StudentOption = { id: string; fullName: string; studentId: string };
+type StudentOption = {
+  id: string;
+  fullName: string;
+  studentId: string;
+  status: EnrolmentStatus;
+};
 
 export function Nav({
   session,
@@ -26,6 +34,9 @@ export function Nav({
 }) {
   const pathname = usePathname();
   const [pickerValue, setPickerValue] = useState("");
+
+  const currentStudent =
+    session.role === "STUDENT" ? students.find((s) => s.id === session.studentId) : null;
 
   const links =
     session.role === "STAFF"
@@ -44,6 +55,20 @@ export function Nav({
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6">
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <span className="text-sm font-semibold tracking-wide uppercase">SMS Registry</span>
+          <div className="flex items-center gap-2 border-l border-border pl-4 text-sm">
+            {session.role === "STAFF" ? (
+              <Badge variant="info">Staff</Badge>
+            ) : (
+              <>
+                <span className="font-medium">{currentStudent?.fullName}</span>
+                {currentStudent && (
+                  <Badge variant={enrolmentStatusBadgeVariant[currentStudent.status]}>
+                    {enrolmentStatusLabels[currentStudent.status]}
+                  </Badge>
+                )}
+              </>
+            )}
+          </div>
           <div className="flex flex-wrap gap-4">
             {links.map((link) => {
               const isActive =
