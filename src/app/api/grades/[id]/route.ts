@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireStaff } from "@/lib/api-auth";
 import { gradePublishSchema } from "@/lib/validations/grade";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -7,6 +8,9 @@ type RouteParams = { params: Promise<{ id: string }> };
 // Toggling publish/withhold. Publishing sets publishedAt; withholding clears
 // it, since a withheld grade isn't meaningfully "published since" any date.
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const auth = await requireStaff();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   const body = await request.json();
   const parsed = gradePublishSchema.safeParse(body);

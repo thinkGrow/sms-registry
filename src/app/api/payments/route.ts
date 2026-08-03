@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generatePaymentReference } from "@/lib/generate-payment-reference";
+import { requireStaffOrSelf } from "@/lib/api-auth";
 import { paymentCreateSchema } from "@/lib/validations/payment";
 
 export async function POST(request: NextRequest) {
@@ -13,6 +14,9 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  const auth = await requireStaffOrSelf(parsed.data.studentId);
+  if (!auth.ok) return auth.response;
 
   const student = await prisma.student.findUnique({
     where: { id: parsed.data.studentId },

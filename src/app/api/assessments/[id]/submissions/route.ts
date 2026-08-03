@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
+import { requireSelf } from "@/lib/api-auth";
 import {
   submissionCreateSchema,
   ACCEPTED_FILE_TYPES,
@@ -30,6 +31,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       { status: 400 }
     );
   }
+
+  const auth = await requireSelf(parsed.data.studentId);
+  if (!auth.ok) return auth.response;
 
   if (!(file instanceof File) || file.size === 0) {
     return NextResponse.json({ error: "A file is required" }, { status: 400 });

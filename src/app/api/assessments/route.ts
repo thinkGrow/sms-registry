@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireStaff } from "@/lib/api-auth";
 import { assessmentCreateSchema } from "@/lib/validations/assessment";
 
 export async function GET(request: NextRequest) {
@@ -16,6 +17,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireStaff();
+  if (!auth.ok) return auth.response;
+
   const body = await request.json();
   const parsed = assessmentCreateSchema.safeParse(body);
 

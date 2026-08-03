@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateStudentId } from "@/lib/generate-student-id";
+import { requireStaff } from "@/lib/api-auth";
 import {
   studentCreateSchema,
   enrolmentStatusValues,
@@ -39,6 +40,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/students
 export async function POST(request: NextRequest) {
+  const auth = await requireStaff();
+  if (!auth.ok) return auth.response;
+
   const body = await request.json();
   const parsed = studentCreateSchema.safeParse(body);
 

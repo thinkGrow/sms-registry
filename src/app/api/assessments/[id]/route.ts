@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireStaff } from "@/lib/api-auth";
 import { assessmentUpdateSchema } from "@/lib/validations/assessment";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -23,6 +24,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const auth = await requireStaff();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   const body = await request.json();
   const parsed = assessmentUpdateSchema.safeParse(body);
