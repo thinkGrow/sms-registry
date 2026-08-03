@@ -84,7 +84,10 @@ async function main() {
     },
   });
 
-  // Deferred, unpaid, 3 years in: 3 of 4 installments due, all unpaid, overdue.
+  // Deferred once already (deferredYears: 1), so his schedule is pushed back
+  // a year: enrolled 2023-09-15 would normally put him 2 full years in by
+  // now, but the deferral drops that to 1, so 2 of 4 installments due
+  // (instead of 3), still unpaid, still overdue.
   const david = await prisma.student.create({
     data: {
       studentId: "SMS-2025-0004",
@@ -95,6 +98,7 @@ async function main() {
       programmeId: business.id,
       academicYear: 3,
       status: "DEFERRED",
+      deferredYears: 1,
     },
   });
 

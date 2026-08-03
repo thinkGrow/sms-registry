@@ -73,8 +73,15 @@ export function getStudentFeeAmount(
 // enrolmentDate (not a single shared programme due date), since two students
 // in the same programme can have started at completely different times.
 // Installment 1 is due at enrolment; each subsequent one, one full year later.
+//
+// deferredYears shifts that schedule back: a student who has deferred has
+// effectively progressed fewer real years than the calendar suggests, so it's
+// subtracted from yearsElapsed before working out what's due by now. This is
+// what makes a deferral permanently push out the final payment date (a
+// Bachelor's student who defers once winds up on a 5-year schedule instead of
+// 4), rather than just a temporary pause that catches back up on its own.
 export function calculateStudentBalance(
-  student: Pick<Student, "feeOverride" | "enrolmentDate">,
+  student: Pick<Student, "feeOverride" | "enrolmentDate" | "deferredYears">,
   programme: Pick<Programme, "feeAmount" | "feeDueDate" | "degreeLevel">,
   payments: Pick<Payment, "amount">[]
 ): StudentBalanceInfo {
@@ -85,7 +92,10 @@ export function calculateStudentBalance(
   const totalInstallments = TOTAL_INSTALLMENTS[programme.degreeLevel];
   const installmentAmount = feeAmount / totalInstallments;
 
-  const yearsElapsed = fullYearsElapsed(new Date(student.enrolmentDate), new Date());
+  const yearsElapsed = Math.max(
+    0,
+    fullYearsElapsed(new Date(student.enrolmentDate), new Date()) - student.deferredYears
+  );
   const installmentsDueByNow = Math.min(yearsElapsed + 1, totalInstallments);
   const amountOwedByNow = installmentAmount * installmentsDueByNow - totalPaid;
 

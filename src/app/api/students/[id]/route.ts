@@ -35,10 +35,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     );
   }
 
+  // A deferral is assumed to be worth exactly one year added to the fee
+  // schedule (see balance.ts), so this only fires when status is actually
+  // transitioning into DEFERRED from something else, not on every unrelated
+  // PATCH to a student who's already deferred (which would double-count).
+  let justDeferred = false;
+  if (parsed.data.status === "DEFERRED") {
+    const existing = await prisma.student.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    justDeferred = existing !== null && existing.status !== "DEFERRED";
+  }
+
   try {
     const student = await prisma.student.update({
       where: { id },
-      data: parsed.data,
+      data: {
+        ...parsed.data,
+        ...(justDeferred && { deferredYears: { increment: 1 } }),
+      },
     });
     return NextResponse.json(student);
   } catch (error: unknown) {

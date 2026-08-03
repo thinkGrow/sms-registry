@@ -21,12 +21,14 @@ export function PaymentsSection({
   studentId,
   payments,
   balance,
+  deferredYears,
   canManage,
   canPayOnline,
 }: {
   studentId: string;
   payments: SerializedPayment[];
   balance: StudentBalanceInfo;
+  deferredYears: number;
   canManage: boolean;
   canPayOnline: boolean;
 }) {
@@ -63,6 +65,11 @@ export function PaymentsSection({
             <span className="font-medium">${balance.installmentAmount.toFixed(2)}</span>
             /year
           </span>
+          {deferredYears > 0 && (
+            <Badge variant="warning">
+              Deferred: +{deferredYears} year{deferredYears === 1 ? "" : "s"} added to schedule
+            </Badge>
+          )}
           {balance.isOverdue && (
             <Badge variant="destructive">
               Overdue (${balance.amountOwedByNow.toFixed(2)})
