@@ -54,10 +54,12 @@ export default async function AssessmentDetailPage({
 
   // Two separate conditions gate submission (matching the same eligibility
   // rule the API enforces server-side): the assessment must belong to the
-  // student's own programme, and they must be actively enrolled. Tracked
-  // separately so the message shown can name the actual reason, rather than
-  // always blaming "programme" even when a student in the right programme is
-  // blocked because they're deferred, withdrawn, or completed instead.
+  // student's own programme, and they must be actively enrolled. Being
+  // deferred, withdrawn, or completed all block submission regardless of
+  // whether the assessment window is still open, none of them mean the
+  // student is currently doing coursework. Tracked separately so the message
+  // shown can name the actual reason, not just "programme" or a generic
+  // "not enrolled".
   const currentStudent =
     session.role === "STUDENT"
       ? await prisma.student.findUnique({ where: { id: session.studentId } })
@@ -146,7 +148,11 @@ export default async function AssessmentDetailPage({
               <p className="text-muted-foreground text-sm">
                 {!isCorrectProgramme
                   ? "This assessment isn't open to your programme."
-                  : "You need to be actively enrolled to submit assessment work."}
+                  : currentStudent?.status === "DEFERRED"
+                    ? "You've deferred your studies, so you can't submit assessment work until you resume."
+                    : currentStudent?.status === "WITHDRAWN"
+                      ? "You've withdrawn from your programme, so you can no longer submit assessment work."
+                      : "You've completed your programme, so you can no longer submit assessment work."}
               </p>
             )}
           </CardContent>

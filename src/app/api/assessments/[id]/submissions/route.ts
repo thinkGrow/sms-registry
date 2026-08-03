@@ -59,8 +59,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
   }
   if (student.status !== "ENROLLED") {
+    const reason: Record<"DEFERRED" | "WITHDRAWN" | "COMPLETED", string> = {
+      DEFERRED: "You've deferred your studies, so you can't submit assessment work until you resume.",
+      WITHDRAWN: "You've withdrawn from your programme, so you can no longer submit assessment work.",
+      COMPLETED: "You've completed your programme, so you can no longer submit assessment work.",
+    };
     return NextResponse.json(
-      { error: "Only enrolled students can submit assessments" },
+      { error: reason[student.status as "DEFERRED" | "WITHDRAWN" | "COMPLETED"] },
       { status: 403 }
     );
   }
