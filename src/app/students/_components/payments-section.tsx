@@ -35,6 +35,10 @@ export function PaymentsSection({
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const paidYears = payments
+    .map((p) => p.installmentYear)
+    .filter((year): year is number => year !== null);
+
   async function handleDelete(paymentId: string) {
     if (!window.confirm("Delete this payment record? This cannot be undone.")) {
       return;
@@ -50,24 +54,30 @@ export function PaymentsSection({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           <span>
-            Fee: <span className="font-medium">${balance.feeAmount.toFixed(2)}</span>
+            Fee:{" "}
+            <span className="font-medium">${balance.feeAmount.toFixed(2)}</span>
           </span>
           <span>
-            Paid: <span className="font-medium">${balance.totalPaid.toFixed(2)}</span>
+            Paid:{" "}
+            <span className="font-medium">${balance.totalPaid.toFixed(2)}</span>
           </span>
           <span>
             Outstanding fees:{" "}
             <span className="font-medium">${balance.balance.toFixed(2)}</span>
           </span>
           <span>
-            Installment {balance.installmentsDueByNow} of {balance.totalInstallments}
+            Installment {balance.installmentsDueByNow} of{" "}
+            {balance.totalInstallments}
             {": "}
-            <span className="font-medium">${balance.installmentAmount.toFixed(2)}</span>
+            <span className="font-medium">
+              ${balance.installmentAmount.toFixed(2)}
+            </span>
             /year
           </span>
           {deferredYears > 0 && (
             <Badge variant="warning">
-              Deferred: +{deferredYears} year{deferredYears === 1 ? "" : "s"} added to schedule
+              Deferred: +{deferredYears} year{deferredYears === 1 ? "" : "s"}{" "}
+              added to schedule
             </Badge>
           )}
           {balance.isOverdue && (
@@ -76,25 +86,51 @@ export function PaymentsSection({
             </Badge>
           )}
         </div>
-        {canManage && <PaymentFormDialog studentId={studentId} />}
-        {canPayOnline && <OnlinePaymentDialog studentId={studentId} />}
+        {canManage && (
+          <PaymentFormDialog
+            studentId={studentId}
+            totalInstallments={balance.totalInstallments}
+            installmentAmount={balance.installmentAmount}
+            paidYears={paidYears}
+          />
+        )}
+        {canPayOnline && (
+          <OnlinePaymentDialog
+            studentId={studentId}
+            totalInstallments={balance.totalInstallments}
+            installmentAmount={balance.installmentAmount}
+            paidYears={paidYears}
+          />
+        )}
       </div>
 
       {payments.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No payments recorded yet.</p>
+        <p className="text-muted-foreground text-sm">
+          No payments recorded yet.
+        </p>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Year</TableHead>
               <TableHead>Reference</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Date paid</TableHead>
-              {canManage && <TableHead className="text-right">Actions</TableHead>}
+              {canManage && (
+                <TableHead className="text-right">Actions</TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
             {payments.map((payment) => (
               <TableRow key={payment.id}>
+                <TableCell>
+                  {payment.installmentYear !== null ? (
+                    `Year ${payment.installmentYear}`
+                  ) : (
+                    <span className="text-muted-foreground">Unspecified</span>
+                  )}
+                </TableCell>
                 <TableCell className="font-mono text-sm">
                   {payment.referenceNumber}
                 </TableCell>
@@ -108,7 +144,13 @@ export function PaymentsSection({
                 </TableCell>
                 {canManage && (
                   <TableCell className="flex justify-end gap-2 text-right">
-                    <PaymentFormDialog studentId={studentId} payment={payment} />
+                    <PaymentFormDialog
+                      studentId={studentId}
+                      totalInstallments={balance.totalInstallments}
+                      installmentAmount={balance.installmentAmount}
+                      paidYears={paidYears}
+                      payment={payment}
+                    />
                     <Button
                       variant="destructive"
                       size="sm"

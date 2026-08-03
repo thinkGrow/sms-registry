@@ -106,6 +106,14 @@ model Payment {
   studentId String
   student   Student @relation(fields: [studentId], references: [id])
 
+  // Which installment year this payment covers (1..totalInstallments for the
+  // student's programme, see balance.ts). Payments are no longer free-form
+  // amounts, staff/students pick an unpaid year and the amount is computed
+  // server-side from the student's fee, not client-supplied. Nullable because
+  // payments recorded before this existed have no year they cleanly map to,
+  // they predate the rule rather than violate it.
+  installmentYear Int?
+
   amount Decimal  @db.Decimal(10, 2)
   paidAt DateTime @db.Date
 

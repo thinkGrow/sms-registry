@@ -39,7 +39,8 @@ export function serializeStudent(student: Student): SerializedStudent {
     programmeId: student.programmeId,
     academicYear: student.academicYear,
     status: student.status,
-    feeOverride: student.feeOverride !== null ? Number(student.feeOverride) : null,
+    feeOverride:
+      student.feeOverride !== null ? Number(student.feeOverride) : null,
     deferredYears: student.deferredYears,
     createdAt: student.createdAt,
     updatedAt: student.updatedAt,
@@ -53,6 +54,7 @@ export function serializePayment(payment: Payment): SerializedPayment {
     id: payment.id,
     referenceNumber: payment.referenceNumber,
     studentId: payment.studentId,
+    installmentYear: payment.installmentYear,
     amount: Number(payment.amount),
     paidAt: payment.paidAt,
     createdAt: payment.createdAt,

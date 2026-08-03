@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generatePaymentReference } from "@/lib/generate-payment-reference";
 import { requireStaffOrSelf } from "@/lib/api-auth";
-import { getStudentFeeAmount } from "@/lib/balance";
+import { getStudentFeeAmount, TOTAL_INSTALLMENTS } from "@/lib/balance";
 import { paymentCreateSchema } from "@/lib/validations/payment";
 
 export async function POST(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.flatten() },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -28,11 +28,41 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
   }
 
-  // Don't allow a payment to push the student past their fee, once fully
-  // paid, no further payments should be recorded (staff or self-service).
+  const totalInstallments = TOTAL_INSTALLMENTS[student.programme.degreeLevel];
+  if (parsed.data.installmentYear > totalInstallments) {
+    return NextResponse.json(
+      {
+        error: `This programme only has ${totalInstallments} installment year${totalInstallments === 1 ? "" : "s"}.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  const alreadyPaid = student.payments.some(
+    (p) => p.installmentYear === parsed.data.installmentYear,
+  );
+  if (alreadyPaid) {
+    return NextResponse.json(
+      { error: `Year ${parsed.data.installmentYear} has already been paid.` },
+      { status: 400 },
+    );
+  }
+
+  // The amount is always the student's own per-year installment, never
+  // client-supplied, so a payment can't be recorded for the wrong amount.
   const feeAmount = getStudentFeeAmount(student, student.programme);
-  const totalPaid = student.payments.reduce((sum, p) => sum + Number(p.amount), 0);
-  if (totalPaid + parsed.data.amount > feeAmount) {
+  const amount = feeAmount / totalInstallments;
+
+  // Defensive, not the primary guard: the one-payment-per-year rule already
+  // prevents overpaying through the new flow on its own, but payments
+  // recorded before this existed have no installmentYear and may already
+  // total more than the fee (a free-form amount at the time), so this still
+  // needs checking against the running total, not just the year slot.
+  const totalPaid = student.payments.reduce(
+    (sum, p) => sum + Number(p.amount),
+    0,
+  );
+  if (totalPaid + amount > feeAmount) {
     const remaining = feeAmount - totalPaid;
     return NextResponse.json(
       {
@@ -41,14 +71,20 @@ export async function POST(request: NextRequest) {
             ? "This student's fee is already fully paid; no further payments are needed."
             : `This payment would exceed the outstanding fee. Remaining balance: $${remaining.toFixed(2)}.`,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   const referenceNumber = await generatePaymentReference();
 
   const payment = await prisma.payment.create({
-    data: { ...parsed.data, referenceNumber },
+    data: {
+      studentId: parsed.data.studentId,
+      installmentYear: parsed.data.installmentYear,
+      paidAt: parsed.data.paidAt,
+      amount,
+      referenceNumber,
+    },
   });
 
   return NextResponse.json(payment, { status: 201 });

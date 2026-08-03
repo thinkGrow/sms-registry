@@ -242,20 +242,79 @@ async function main() {
     },
   });
 
+  // These predate installmentYear (payments used to be a free-form amount,
+  // not a specific year), so they're left without one rather than guessing
+  // which year each amount was meant to cover. Every payment recorded
+  // through the app from now on always has a year.
   await prisma.payment.createMany({
     data: [
-      { referenceNumber: "PMT-2026-000001", studentId: alice.id, amount: 5000, paidAt: new Date("2026-06-15") },
-      { referenceNumber: "PMT-2026-000002", studentId: brian.id, amount: 2000, paidAt: new Date("2026-06-20") },
-      { referenceNumber: "PMT-2026-000003", studentId: emma.id, amount: 1000, paidAt: new Date("2026-06-10") },
-      { referenceNumber: "PMT-2026-000004", studentId: farid.id, amount: 4000, paidAt: new Date("2026-06-01") },
-      { referenceNumber: "PMT-2026-000005", studentId: grace.id, amount: 3000, paidAt: new Date("2026-06-18") },
+      {
+        referenceNumber: "PMT-2026-000001",
+        studentId: alice.id,
+        amount: 5000,
+        paidAt: new Date("2026-06-15"),
+      },
+      {
+        referenceNumber: "PMT-2026-000002",
+        studentId: brian.id,
+        amount: 2000,
+        paidAt: new Date("2026-06-20"),
+      },
+      {
+        referenceNumber: "PMT-2026-000003",
+        studentId: emma.id,
+        amount: 1000,
+        paidAt: new Date("2026-06-10"),
+      },
+      {
+        referenceNumber: "PMT-2026-000004",
+        studentId: farid.id,
+        amount: 4000,
+        paidAt: new Date("2026-06-01"),
+      },
+      {
+        referenceNumber: "PMT-2026-000005",
+        studentId: grace.id,
+        amount: 3000,
+        paidAt: new Date("2026-06-18"),
+      },
       // Isla pays in two installments rather than one lump sum.
-      { referenceNumber: "PMT-2026-000006", studentId: isla.id, amount: 2000, paidAt: new Date("2026-06-05") },
-      { referenceNumber: "PMT-2026-000007", studentId: isla.id, amount: 1500, paidAt: new Date("2026-06-25") },
-      { referenceNumber: "PMT-2026-000008", studentId: jamal.id, amount: 4000, paidAt: new Date("2026-06-12") },
-      { referenceNumber: "PMT-2026-000009", studentId: fatima.id, amount: 2000, paidAt: new Date("2026-06-08") },
-      { referenceNumber: "PMT-2026-000010", studentId: liam.id, amount: 5000, paidAt: new Date("2026-06-22") },
-      { referenceNumber: "PMT-2026-000011", studentId: noah.id, amount: 6000, paidAt: new Date("2026-05-20") },
+      {
+        referenceNumber: "PMT-2026-000006",
+        studentId: isla.id,
+        amount: 2000,
+        paidAt: new Date("2026-06-05"),
+      },
+      {
+        referenceNumber: "PMT-2026-000007",
+        studentId: isla.id,
+        amount: 1500,
+        paidAt: new Date("2026-06-25"),
+      },
+      {
+        referenceNumber: "PMT-2026-000008",
+        studentId: jamal.id,
+        amount: 4000,
+        paidAt: new Date("2026-06-12"),
+      },
+      {
+        referenceNumber: "PMT-2026-000009",
+        studentId: fatima.id,
+        amount: 2000,
+        paidAt: new Date("2026-06-08"),
+      },
+      {
+        referenceNumber: "PMT-2026-000010",
+        studentId: liam.id,
+        amount: 5000,
+        paidAt: new Date("2026-06-22"),
+      },
+      {
+        referenceNumber: "PMT-2026-000011",
+        studentId: noah.id,
+        amount: 6000,
+        paidAt: new Date("2026-05-20"),
+      },
     ],
   });
 
@@ -314,27 +373,118 @@ async function main() {
   // would incorrectly mark everything late rather than just the intended examples.
   const submissionSeeds = [
     // Data Structures Assignment 1 (deadline 2026-07-20).
-    { assessmentId: dataStructuresAssignment.id, studentId: alice.id, fileUrl: "/uploads/alice-ds-assignment1.pdf", fileName: "alice-ds-assignment1.pdf", fileType: "PDF" as const, submittedAt: "2026-07-18T14:00:00Z" },
+    {
+      assessmentId: dataStructuresAssignment.id,
+      studentId: alice.id,
+      fileUrl: "/uploads/alice-ds-assignment1.pdf",
+      fileName: "alice-ds-assignment1.pdf",
+      fileType: "PDF" as const,
+      submittedAt: "2026-07-18T14:00:00Z",
+    },
     // Late: submitted after the deadline.
-    { assessmentId: dataStructuresAssignment.id, studentId: brian.id, fileUrl: "/uploads/brian-ds-assignment1.docx", fileName: "brian-ds-assignment1.docx", fileType: "DOCX" as const, submittedAt: "2026-07-22T10:00:00Z" },
-    { assessmentId: dataStructuresAssignment.id, studentId: grace.id, fileUrl: "/uploads/grace-ds-assignment1.pdf", fileName: "grace-ds-assignment1.pdf", fileType: "PDF" as const, submittedAt: "2026-07-19T09:00:00Z" },
-    { assessmentId: dataStructuresAssignment.id, studentId: isla.id, fileUrl: "/uploads/isla-ds-assignment1.pdf", fileName: "isla-ds-assignment1.pdf", fileType: "PDF" as const, submittedAt: "2026-07-17T12:00:00Z" },
-    { assessmentId: dataStructuresAssignment.id, studentId: liam.id, fileUrl: "/uploads/liam-ds-assignment1.docx", fileName: "liam-ds-assignment1.docx", fileType: "DOCX" as const, submittedAt: "2026-07-20T20:00:00Z" },
+    {
+      assessmentId: dataStructuresAssignment.id,
+      studentId: brian.id,
+      fileUrl: "/uploads/brian-ds-assignment1.docx",
+      fileName: "brian-ds-assignment1.docx",
+      fileType: "DOCX" as const,
+      submittedAt: "2026-07-22T10:00:00Z",
+    },
+    {
+      assessmentId: dataStructuresAssignment.id,
+      studentId: grace.id,
+      fileUrl: "/uploads/grace-ds-assignment1.pdf",
+      fileName: "grace-ds-assignment1.pdf",
+      fileType: "PDF" as const,
+      submittedAt: "2026-07-19T09:00:00Z",
+    },
+    {
+      assessmentId: dataStructuresAssignment.id,
+      studentId: isla.id,
+      fileUrl: "/uploads/isla-ds-assignment1.pdf",
+      fileName: "isla-ds-assignment1.pdf",
+      fileType: "PDF" as const,
+      submittedAt: "2026-07-17T12:00:00Z",
+    },
+    {
+      assessmentId: dataStructuresAssignment.id,
+      studentId: liam.id,
+      fileUrl: "/uploads/liam-ds-assignment1.docx",
+      fileName: "liam-ds-assignment1.docx",
+      fileType: "DOCX" as const,
+      submittedAt: "2026-07-20T20:00:00Z",
+    },
 
     // Algorithms Midterm (deadline 2026-07-25).
-    { assessmentId: algorithmsMidterm.id, studentId: alice.id, fileUrl: "/uploads/alice-algorithms-midterm.pdf", fileName: "alice-algorithms-midterm.pdf", fileType: "PDF" as const, submittedAt: "2026-07-24T11:00:00Z" },
-    { assessmentId: algorithmsMidterm.id, studentId: brian.id, fileUrl: "/uploads/brian-algorithms-midterm.pdf", fileName: "brian-algorithms-midterm.pdf", fileType: "PDF" as const, submittedAt: "2026-07-24T15:00:00Z" },
-    { assessmentId: algorithmsMidterm.id, studentId: grace.id, fileUrl: "/uploads/grace-algorithms-midterm.pdf", fileName: "grace-algorithms-midterm.pdf", fileType: "PDF" as const, submittedAt: "2026-07-23T16:00:00Z" },
-    { assessmentId: algorithmsMidterm.id, studentId: isla.id, fileUrl: "/uploads/isla-algorithms-midterm.pdf", fileName: "isla-algorithms-midterm.pdf", fileType: "PDF" as const, submittedAt: "2026-07-25T18:00:00Z" },
+    {
+      assessmentId: algorithmsMidterm.id,
+      studentId: alice.id,
+      fileUrl: "/uploads/alice-algorithms-midterm.pdf",
+      fileName: "alice-algorithms-midterm.pdf",
+      fileType: "PDF" as const,
+      submittedAt: "2026-07-24T11:00:00Z",
+    },
+    {
+      assessmentId: algorithmsMidterm.id,
+      studentId: brian.id,
+      fileUrl: "/uploads/brian-algorithms-midterm.pdf",
+      fileName: "brian-algorithms-midterm.pdf",
+      fileType: "PDF" as const,
+      submittedAt: "2026-07-24T15:00:00Z",
+    },
+    {
+      assessmentId: algorithmsMidterm.id,
+      studentId: grace.id,
+      fileUrl: "/uploads/grace-algorithms-midterm.pdf",
+      fileName: "grace-algorithms-midterm.pdf",
+      fileType: "PDF" as const,
+      submittedAt: "2026-07-23T16:00:00Z",
+    },
+    {
+      assessmentId: algorithmsMidterm.id,
+      studentId: isla.id,
+      fileUrl: "/uploads/isla-algorithms-midterm.pdf",
+      fileName: "isla-algorithms-midterm.pdf",
+      fileType: "PDF" as const,
+      submittedAt: "2026-07-25T18:00:00Z",
+    },
     // Late: submitted the day after the deadline.
-    { assessmentId: algorithmsMidterm.id, studentId: liam.id, fileUrl: "/uploads/liam-algorithms-midterm.docx", fileName: "liam-algorithms-midterm.docx", fileType: "DOCX" as const, submittedAt: "2026-07-26T09:00:00Z" },
+    {
+      assessmentId: algorithmsMidterm.id,
+      studentId: liam.id,
+      fileUrl: "/uploads/liam-algorithms-midterm.docx",
+      fileName: "liam-algorithms-midterm.docx",
+      fileType: "DOCX" as const,
+      submittedAt: "2026-07-26T09:00:00Z",
+    },
 
     // Business Ethics Essay (deadline 2026-08-15, still open).
-    { assessmentId: businessEthicsEssay.id, studentId: carla.id, fileUrl: "/uploads/carla-business-ethics-essay.docx", fileName: "carla-business-ethics-essay.docx", fileType: "DOCX" as const, submittedAt: "2026-08-01T13:00:00Z" },
-    { assessmentId: businessEthicsEssay.id, studentId: jamal.id, fileUrl: "/uploads/jamal-business-ethics-essay.pdf", fileName: "jamal-business-ethics-essay.pdf", fileType: "PDF" as const, submittedAt: "2026-08-02T10:00:00Z" },
+    {
+      assessmentId: businessEthicsEssay.id,
+      studentId: carla.id,
+      fileUrl: "/uploads/carla-business-ethics-essay.docx",
+      fileName: "carla-business-ethics-essay.docx",
+      fileType: "DOCX" as const,
+      submittedAt: "2026-08-01T13:00:00Z",
+    },
+    {
+      assessmentId: businessEthicsEssay.id,
+      studentId: jamal.id,
+      fileUrl: "/uploads/jamal-business-ethics-essay.pdf",
+      fileName: "jamal-business-ethics-essay.pdf",
+      fileType: "PDF" as const,
+      submittedAt: "2026-08-02T10:00:00Z",
+    },
 
     // Machine Learning Fundamentals (deadline 2026-08-20, still open).
-    { assessmentId: machineLearningFundamentals.id, studentId: henry.id, fileUrl: "/uploads/henry-machine-learning.pdf", fileName: "henry-machine-learning.pdf", fileType: "PDF" as const, submittedAt: "2026-08-02T09:00:00Z" },
+    {
+      assessmentId: machineLearningFundamentals.id,
+      studentId: henry.id,
+      fileUrl: "/uploads/henry-machine-learning.pdf",
+      fileName: "henry-machine-learning.pdf",
+      fileType: "PDF" as const,
+      submittedAt: "2026-08-02T09:00:00Z",
+    },
 
     // Marketing Fundamentals Quiz: deliberately no submissions at all.
   ];
@@ -347,10 +497,14 @@ async function main() {
   for (const { submittedAt, ...data } of submissionSeeds) {
     await writeFile(
       path.join(UPLOAD_DIR, path.basename(data.fileUrl)),
-      `Placeholder seed file for ${data.fileName}`
+      `Placeholder seed file for ${data.fileName}`,
     );
     await prisma.submission.create({
-      data: { ...data, createdAt: new Date(submittedAt), updatedAt: new Date(submittedAt) },
+      data: {
+        ...data,
+        createdAt: new Date(submittedAt),
+        updatedAt: new Date(submittedAt),
+      },
     });
   }
 
@@ -360,23 +514,74 @@ async function main() {
   await prisma.grade.createMany({
     data: [
       // Algorithms Midterm
-      { assessmentId: algorithmsMidterm.id, studentId: alice.id, score: 78.5, isPublished: true, publishedAt: new Date("2026-07-28") },
-      { assessmentId: algorithmsMidterm.id, studentId: brian.id, score: 65.0, isPublished: true, publishedAt: new Date("2026-07-28") },
-      { assessmentId: algorithmsMidterm.id, studentId: grace.id, score: 35.0, isPublished: false },
-      { assessmentId: algorithmsMidterm.id, studentId: isla.id, score: 55.0, isPublished: true, publishedAt: new Date("2026-07-29") },
-      { assessmentId: algorithmsMidterm.id, studentId: liam.id, score: 82.0, isPublished: false },
+      {
+        assessmentId: algorithmsMidterm.id,
+        studentId: alice.id,
+        score: 78.5,
+        isPublished: true,
+        publishedAt: new Date("2026-07-28"),
+      },
+      {
+        assessmentId: algorithmsMidterm.id,
+        studentId: brian.id,
+        score: 65.0,
+        isPublished: true,
+        publishedAt: new Date("2026-07-28"),
+      },
+      {
+        assessmentId: algorithmsMidterm.id,
+        studentId: grace.id,
+        score: 35.0,
+        isPublished: false,
+      },
+      {
+        assessmentId: algorithmsMidterm.id,
+        studentId: isla.id,
+        score: 55.0,
+        isPublished: true,
+        publishedAt: new Date("2026-07-29"),
+      },
+      {
+        assessmentId: algorithmsMidterm.id,
+        studentId: liam.id,
+        score: 82.0,
+        isPublished: false,
+      },
 
       // Data Structures Assignment 1
-      { assessmentId: dataStructuresAssignment.id, studentId: alice.id, score: 48.0, isPublished: true, publishedAt: new Date("2026-07-23") },
-      { assessmentId: dataStructuresAssignment.id, studentId: brian.id, score: 71.0, isPublished: true, publishedAt: new Date("2026-07-23") },
-      { assessmentId: dataStructuresAssignment.id, studentId: grace.id, score: 60.0, isPublished: false },
-      { assessmentId: dataStructuresAssignment.id, studentId: isla.id, score: 38.5, isPublished: true, publishedAt: new Date("2026-07-24") },
+      {
+        assessmentId: dataStructuresAssignment.id,
+        studentId: alice.id,
+        score: 48.0,
+        isPublished: true,
+        publishedAt: new Date("2026-07-23"),
+      },
+      {
+        assessmentId: dataStructuresAssignment.id,
+        studentId: brian.id,
+        score: 71.0,
+        isPublished: true,
+        publishedAt: new Date("2026-07-23"),
+      },
+      {
+        assessmentId: dataStructuresAssignment.id,
+        studentId: grace.id,
+        score: 60.0,
+        isPublished: false,
+      },
+      {
+        assessmentId: dataStructuresAssignment.id,
+        studentId: isla.id,
+        score: 38.5,
+        isPublished: true,
+        publishedAt: new Date("2026-07-24"),
+      },
       // Liam's Data Structures submission is left ungraded on purpose.
     ],
   });
 
   console.log(
-    "Seed complete: 3 programmes, 14 students, 11 payments, 5 assessments, 13 submissions, 9 grades."
+    "Seed complete: 3 programmes, 14 students, 11 payments, 5 assessments, 13 submissions, 9 grades.",
   );
 }
 
