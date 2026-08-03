@@ -150,6 +150,7 @@ export default async function StudentDetailPage({
             payments={serializedPayments}
             balance={balance}
             canManage={isStaff}
+            canPayOnline={!isStaff}
           />
         </CardContent>
       </Card>

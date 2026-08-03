@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PaymentFormDialog } from "./payment-form-dialog";
+import { OnlinePaymentDialog } from "./online-payment-dialog";
 import type { SerializedPayment } from "@/lib/serialize";
 import type { StudentBalanceInfo } from "@/lib/balance";
 
@@ -21,11 +22,13 @@ export function PaymentsSection({
   payments,
   balance,
   canManage,
+  canPayOnline,
 }: {
   studentId: string;
   payments: SerializedPayment[];
   balance: StudentBalanceInfo;
   canManage: boolean;
+  canPayOnline: boolean;
 }) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -57,6 +60,7 @@ export function PaymentsSection({
           {balance.isOverdue && <Badge variant="destructive">Overdue</Badge>}
         </div>
         {canManage && <PaymentFormDialog studentId={studentId} />}
+        {canPayOnline && <OnlinePaymentDialog studentId={studentId} />}
       </div>
 
       {payments.length === 0 ? (
