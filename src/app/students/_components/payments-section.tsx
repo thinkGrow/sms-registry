@@ -42,8 +42,8 @@ export function PaymentsSection({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 text-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           <span>
             Fee: <span className="font-medium">${balance.feeAmount.toFixed(2)}</span>
           </span>

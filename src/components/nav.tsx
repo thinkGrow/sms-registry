@@ -41,10 +41,10 @@ export function Nav({
 
   return (
     <nav className="border-b border-border">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-3">
-        <div className="flex items-center gap-6">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <span className="text-sm font-semibold tracking-wide uppercase">SMS Registry</span>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             {links.map((link) => {
               const isActive =
                 link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
@@ -66,11 +66,11 @@ export function Nav({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {session.role === "STAFF" ? (
             <>
               <Select value={pickerValue} onValueChange={setPickerValue}>
-                <SelectTrigger className="w-[200px]" size="sm">
+                <SelectTrigger className="w-full sm:w-[200px]" size="sm">
                   <SelectValue placeholder="View as student...">
                     {(value: string) =>
                       students.find((s) => s.id === value)?.fullName ??
