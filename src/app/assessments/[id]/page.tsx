@@ -51,6 +51,8 @@ export default async function AssessmentDetailPage({
     return {
       studentId: submission.studentId,
       studentName: submission.student.fullName,
+      fileUrl: submission.fileUrl,
+      fileName: submission.fileName,
       gradeId: grade?.id ?? null,
       score: grade ? Number(grade.score) : null,
       isPublished: grade?.isPublished ?? false,

@@ -22,6 +22,8 @@ import {
 type GradeRow = {
   studentId: string;
   studentName: string;
+  fileUrl: string;
+  fileName: string;
   gradeId: string | null;
   score: number | null;
   isPublished: boolean;
@@ -83,6 +85,7 @@ export function GradesSection({
         <TableHeader>
           <TableRow>
             <TableHead>Student</TableHead>
+            <TableHead>File</TableHead>
             <TableHead>Score</TableHead>
             <TableHead>Classification</TableHead>
             <TableHead>Status</TableHead>
@@ -95,6 +98,16 @@ export function GradesSection({
             return (
               <TableRow key={row.studentId}>
                 <TableCell>{row.studentName}</TableCell>
+                <TableCell>
+                  <a
+                    href={row.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline"
+                  >
+                    {row.fileName}
+                  </a>
+                </TableCell>
                 <TableCell>
                   <Input
                     type="number"
