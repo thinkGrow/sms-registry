@@ -84,6 +84,14 @@ export default async function AssessmentsPage() {
                   // own record) when session.role === "STUDENT".
                   const mySubmission = assessment.submissions[0];
                   const myGrade = assessment.grades[0];
+                  // "Ungraded" means no Grade row at all for that submission's
+                  // (student, assessment) pair, same definition used on the
+                  // dashboard's ungraded-submissions list. Only meaningful for
+                  // staff, who get every submission/grade for this assessment.
+                  const gradedStudentIds = new Set(assessment.grades.map((g) => g.studentId));
+                  const ungradedCount = assessment.submissions.filter(
+                    (s) => !gradedStudentIds.has(s.studentId)
+                  ).length;
                   return (
                     <TableRow key={assessment.id}>
                       <TableCell>
@@ -107,7 +115,12 @@ export default async function AssessmentsPage() {
                       </TableCell>
                       <TableCell>
                         {isStaff ? (
-                          assessment.submissions.length
+                          <div className="flex items-center gap-2">
+                            <span>{assessment.submissions.length}</span>
+                            {ungradedCount > 0 && (
+                              <Badge variant="secondary">{ungradedCount} ungraded</Badge>
+                            )}
+                          </div>
                         ) : !mySubmission ? (
                           <span className="text-muted-foreground">Not submitted</span>
                         ) : myGrade?.isPublished ? (

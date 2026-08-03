@@ -56,6 +56,7 @@ export default async function AssessmentDetailPage({
       isPublished: grade?.isPublished ?? false,
     };
   });
+  const ungradedCount = gradeRows.filter((row) => row.gradeId === null).length;
 
   // Two separate conditions gate submission (matching the same eligibility
   // rule the API enforces server-side): the assessment must belong to the
@@ -265,6 +266,7 @@ export default async function AssessmentDetailPage({
                         ) : (
                           isResubmission && <Badge variant="info">Resubmitted</Badge>
                         )}
+                        {isStaff && !grade && <Badge variant="secondary">Ungraded</Badge>}
                       </TableCell>
                       {!isStaff && (
                         <TableCell>
@@ -296,7 +298,9 @@ export default async function AssessmentDetailPage({
       {isStaff && (
         <Card>
           <CardHeader>
-            <CardTitle>Grades</CardTitle>
+            <CardTitle>
+              Grades{ungradedCount > 0 ? ` (${ungradedCount} ungraded)` : ""}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <GradesSection assessmentId={assessment.id} rows={gradeRows} />
