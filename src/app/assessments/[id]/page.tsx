@@ -52,18 +52,20 @@ export default async function AssessmentDetailPage({
     };
   });
 
-  // Only show the submit form if this assessment belongs to the student's
-  // own programme and they're enrolled (matches the same eligibility rule
-  // the API enforces server-side).
+  // Two separate conditions gate submission (matching the same eligibility
+  // rule the API enforces server-side): the assessment must belong to the
+  // student's own programme, and they must be actively enrolled. Tracked
+  // separately so the message shown can name the actual reason, rather than
+  // always blaming "programme" even when a student in the right programme is
+  // blocked because they're deferred, withdrawn, or completed instead.
+  const currentStudent =
+    session.role === "STUDENT"
+      ? await prisma.student.findUnique({ where: { id: session.studentId } })
+      : null;
+  const isCorrectProgramme = currentStudent?.programmeId === assessment.programmeId;
+  const isEnrolled = currentStudent?.status === "ENROLLED";
   const canCurrentStudentSubmit =
-    session.role === "STUDENT" &&
-    (await prisma.student.count({
-      where: {
-        id: session.studentId,
-        programmeId: assessment.programmeId,
-        status: "ENROLLED",
-      },
-    })) > 0;
+    session.role === "STUDENT" && isCorrectProgramme && isEnrolled;
 
   const visibleSubmissions = isStaff
     ? assessment.submissions
@@ -142,7 +144,9 @@ export default async function AssessmentDetailPage({
               <SubmissionForm assessmentId={assessment.id} studentId={session.studentId} />
             ) : (
               <p className="text-muted-foreground text-sm">
-                This assessment isn&apos;t open to your programme.
+                {!isCorrectProgramme
+                  ? "This assessment isn't open to your programme."
+                  : "You need to be actively enrolled to submit assessment work."}
               </p>
             )}
           </CardContent>
