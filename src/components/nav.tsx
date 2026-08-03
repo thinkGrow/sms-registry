@@ -67,40 +67,39 @@ export function Nav({
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          {session.role === "STAFF" ? (
-            <>
-              <Select value={pickerValue} onValueChange={setPickerValue}>
-                <SelectTrigger className="w-full sm:w-[200px]" size="sm">
-                  <SelectValue placeholder="View as student...">
-                    {(value: string) =>
-                      students.find((s) => s.id === value)?.fullName ??
-                      "View as student..."
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {students.map((student) => (
-                    <SelectItem key={student.id} value={student.id}>
-                      <div className="flex flex-col">
-                        <span>{student.fullName}</span>
-                        <span className="text-muted-foreground text-xs">
-                          {student.studentId}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={!pickerValue}
-                onClick={() => switchToStudent(pickerValue)}
-              >
-                Switch
-              </Button>
-            </>
-          ) : (
+          <Select value={pickerValue} onValueChange={setPickerValue}>
+            <SelectTrigger className="w-full sm:w-[200px]" size="sm">
+              <SelectValue placeholder="View as student...">
+                {(value: string) =>
+                  students.find((s) => s.id === value)?.fullName ??
+                  "View as student..."
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {students
+                .filter((student) => student.id !== (session.role === "STUDENT" ? session.studentId : null))
+                .map((student) => (
+                  <SelectItem key={student.id} value={student.id}>
+                    <div className="flex flex-col">
+                      <span>{student.fullName}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {student.studentId}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!pickerValue}
+            onClick={() => switchToStudent(pickerValue)}
+          >
+            Switch
+          </Button>
+          {session.role === "STUDENT" && (
             <Button size="sm" variant="outline" onClick={() => switchToStaff()}>
               Switch to Staff View
             </Button>
