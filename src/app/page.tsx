@@ -13,10 +13,17 @@ export default async function DashboardPage() {
     redirect(`/students/${session.studentId}`);
   }
 
-  const students = await prisma.student.findMany({
-    include: { programme: true, payments: true },
-    orderBy: { fullName: "asc" },
-  });
+  const [students, submissions, grades] = await Promise.all([
+    prisma.student.findMany({
+      include: { programme: true, payments: true },
+      orderBy: { fullName: "asc" },
+    }),
+    prisma.submission.findMany({
+      include: { student: true, assessment: true },
+      orderBy: { updatedAt: "asc" },
+    }),
+    prisma.grade.findMany({ select: { studentId: true, assessmentId: true } }),
+  ]);
 
   const withBalance = students.map((student) => ({
     student,
@@ -24,6 +31,18 @@ export default async function DashboardPage() {
   }));
 
   const overdue = withBalance.filter(({ balance }) => balance.isOverdue);
+
+  // A submission is "ungraded" if no Grade row exists at all for its
+  // (student, assessment) pair, not just unpublished. There's no direct
+  // relation between Submission and Grade (each keys independently off
+  // studentId+assessmentId), so this is a set lookup rather than a join,
+  // same pattern used to match submissions to grades on the assessment
+  // detail page. Oldest-waiting first, so the longest-neglected submission
+  // surfaces at the top.
+  const gradedKeys = new Set(grades.map((g) => `${g.studentId}:${g.assessmentId}`));
+  const ungraded = submissions.filter(
+    (s) => !gradedKeys.has(`${s.studentId}:${s.assessmentId}`)
+  );
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-6">
@@ -34,7 +53,7 @@ export default async function DashboardPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle className="text-muted-foreground text-sm font-normal">
@@ -53,6 +72,16 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold text-destructive">{overdue.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-muted-foreground text-sm font-normal">
+              Ungraded Submissions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-semibold">{ungraded.length}</p>
           </CardContent>
         </Card>
       </div>
@@ -86,6 +115,49 @@ export default async function DashboardPage() {
                   </Badge>
                 </li>
               ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Submissions Awaiting Grading</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {ungraded.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              Nothing waiting to be graded right now.
+            </p>
+          ) : (
+            <ul className="divide-border divide-y">
+              {ungraded.map((submission) => {
+                const isLate = new Date(submission.updatedAt) > new Date(submission.assessment.deadline);
+                return (
+                  <li key={submission.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <Link
+                        href={`/assessments/${submission.assessmentId}`}
+                        className="font-medium hover:underline"
+                      >
+                        {submission.assessment.title}
+                      </Link>
+                      <div className="text-muted-foreground text-xs">
+                        <Link href={`/students/${submission.studentId}`} className="hover:underline">
+                          {submission.student.fullName}
+                        </Link>
+                        {" · submitted "}
+                        {new Date(submission.updatedAt).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </div>
+                    </div>
+                    {isLate && <Badge variant="warning">Late</Badge>}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>
