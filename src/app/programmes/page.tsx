@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getYearlyFeeBreakdown, TOTAL_INSTALLMENTS } from "@/lib/balance";
 import { getSession } from "@/lib/session";
+import { serializeProgramme } from "@/lib/serialize";
+import { ProgrammeFormDialog } from "./_components/programme-form-dialog";
 
 const degreeLevelLabels = {
   BACHELORS: "Bachelor's",
@@ -23,11 +25,14 @@ export default async function ProgrammesPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Programmes</h1>
-        <p className="text-muted-foreground text-sm">
-          {programmes.length} programme{programmes.length === 1 ? "" : "s"}
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Programmes</h1>
+          <p className="text-muted-foreground text-sm">
+            {programmes.length} programme{programmes.length === 1 ? "" : "s"}
+          </p>
+        </div>
+        {isStaff && <ProgrammeFormDialog />}
       </div>
 
       <Card>
@@ -70,7 +75,7 @@ export default async function ProgrammesPage() {
                         ${breakdown[0].amount.toFixed(2)} × {TOTAL_INSTALLMENTS[programme.degreeLevel]} years
                       </TableCell>
                       {isStaff && <TableCell>{programme._count.students}</TableCell>}
-                      <TableCell className="text-right">
+                      <TableCell className="flex justify-end gap-2 text-right">
                         <Button
                           variant="outline"
                           size="sm"
@@ -79,6 +84,12 @@ export default async function ProgrammesPage() {
                         >
                           Details
                         </Button>
+                        {isStaff && (
+                          <ProgrammeFormDialog
+                            key={`${programme.id}-${programme.updatedAt}`}
+                            programme={serializeProgramme(programme)}
+                          />
+                        )}
                       </TableCell>
                     </TableRow>
                   );

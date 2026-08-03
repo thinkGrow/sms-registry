@@ -14,6 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getSession } from "@/lib/session";
+import { serializeProgramme } from "@/lib/serialize";
+import { ProgrammeFormDialog } from "../_components/programme-form-dialog";
 
 const degreeLevelLabels = {
   BACHELORS: "Bachelor's",
@@ -44,9 +46,17 @@ export default async function ProgrammeDetailPage({
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-6">
-      <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/programmes" />}>
-        Back to Programmes
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/programmes" />}>
+          Back to Programmes
+        </Button>
+        {isStaff && (
+          <ProgrammeFormDialog
+            key={`${programme.id}-${programme.updatedAt}`}
+            programme={serializeProgramme(programme)}
+          />
+        )}
+      </div>
 
       <Card>
         <CardHeader>
