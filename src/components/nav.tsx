@@ -120,12 +120,12 @@ export function Nav({
             size="sm"
             variant="outline"
             disabled={!pickerValue}
-            onClick={() => switchToStudent(pickerValue)}
+            onClick={() => switchToStudent(pickerValue, pathname)}
           >
             Switch
           </Button>
           {session.role === "STUDENT" && (
-            <Button size="sm" variant="outline" onClick={() => switchToStaff()}>
+            <Button size="sm" variant="outline" onClick={() => switchToStaff(pathname)}>
               Switch to Staff View
             </Button>
           )}
