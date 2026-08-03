@@ -28,6 +28,15 @@ function fullYearsElapsed(from: Date, to: Date): number {
   return Math.max(0, years);
 }
 
+// A student's fee override replaces the programme's standard fee entirely
+// (never both), so this is the one place that decision is made.
+export function getStudentFeeAmount(
+  student: Pick<Student, "feeOverride">,
+  programme: Pick<Programme, "feeAmount">
+): number {
+  return Number(student.feeOverride ?? programme.feeAmount);
+}
+
 // Computed at read time, never stored, same principle applied to every other
 // derived field in this app (late submissions, grade classification, age).
 //
@@ -40,7 +49,7 @@ export function calculateStudentBalance(
   programme: Pick<Programme, "feeAmount" | "feeDueDate" | "degreeLevel">,
   payments: Pick<Payment, "amount">[]
 ): StudentBalanceInfo {
-  const feeAmount = Number(student.feeOverride ?? programme.feeAmount);
+  const feeAmount = getStudentFeeAmount(student, programme);
   const totalPaid = payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
   const balance = feeAmount - totalPaid;
 
