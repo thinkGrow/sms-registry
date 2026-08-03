@@ -13,10 +13,39 @@ export type StudentBalanceInfo = {
 
 // One installment per year of study: a 4-year Bachelor's splits the fee into
 // 4, a 2-year Master's into 2.
-const TOTAL_INSTALLMENTS: Record<DegreeLevel, number> = {
+export const TOTAL_INSTALLMENTS: Record<DegreeLevel, number> = {
   BACHELORS: 4,
   MASTERS: 2,
 };
+
+export type YearlyFeeBreakdown = {
+  year: number;
+  amount: number;
+  cumulativeAmount: number;
+};
+
+// The programme-level, student-independent version of the same even split
+// used in calculateStudentBalance: how much is due each year of study, and
+// the running total by that year. Any individual student's actual schedule
+// is still anchored to their own enrolmentDate and may use feeOverride
+// instead of programme.feeAmount, this is just the standard breakdown for
+// the programme itself.
+export function getYearlyFeeBreakdown(
+  programme: Pick<Programme, "feeAmount" | "degreeLevel">
+): YearlyFeeBreakdown[] {
+  const totalInstallments = TOTAL_INSTALLMENTS[programme.degreeLevel];
+  const feeAmount = Number(programme.feeAmount);
+  const installmentAmount = feeAmount / totalInstallments;
+
+  return Array.from({ length: totalInstallments }, (_, i) => {
+    const year = i + 1;
+    return {
+      year,
+      amount: installmentAmount,
+      cumulativeAmount: installmentAmount * year,
+    };
+  });
+}
 
 // Full years elapsed between two dates, anniversary-aware (not just a
 // calendar-year subtraction, which would over-count e.g. Dec 2025 -> Jan 2026

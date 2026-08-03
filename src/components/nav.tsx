@@ -44,10 +44,12 @@ export function Nav({
           { href: "/", label: "Dashboard" },
           { href: "/students", label: "Students" },
           { href: "/assessments", label: "Assessments" },
+          { href: "/programmes", label: "Programmes" },
         ]
       : [
           { href: `/students/${session.studentId}`, label: "My Profile" },
           { href: "/assessments", label: "Assessments" },
+          { href: "/programmes", label: "Programmes" },
         ];
 
   return (
