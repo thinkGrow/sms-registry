@@ -81,7 +81,12 @@ export function Nav({
                 <SelectContent>
                   {students.map((student) => (
                     <SelectItem key={student.id} value={student.id}>
-                      {student.fullName} ({student.studentId})
+                      <div className="flex flex-col">
+                        <span>{student.fullName}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {student.studentId}
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
