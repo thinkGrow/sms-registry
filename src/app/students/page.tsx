@@ -5,6 +5,7 @@ import { StudentsTable } from "./_components/students-table";
 import { StudentFormDialog } from "./_components/student-form-dialog";
 import { enrolmentStatusValues } from "@/lib/validations/student";
 import { serializeProgramme, serializeStudent } from "@/lib/serialize";
+import { calculateStudentBalance } from "@/lib/balance";
 
 type SearchParams = {
   search?: string;
@@ -40,7 +41,7 @@ export default async function StudentsPage({
         ...(programmeId && { programmeId }),
         ...(isValidStatus(status) && { status }),
       },
-      include: { programme: true },
+      include: { programme: true, payments: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.programme.findMany({ orderBy: { name: "asc" } }),
@@ -50,6 +51,8 @@ export default async function StudentsPage({
   const serializedStudents = students.map((student) => ({
     ...serializeStudent(student),
     programme: serializeProgramme(student.programme),
+    isOverdue: calculateStudentBalance(student, student.programme, student.payments)
+      .isOverdue,
   }));
 
   return (

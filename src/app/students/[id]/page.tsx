@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { serializeProgramme, serializeStudent } from "@/lib/serialize";
+import { serializeProgramme, serializeStudent, serializePayment } from "@/lib/serialize";
+import { calculateStudentBalance } from "@/lib/balance";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StudentFormDialog } from "../_components/student-form-dialog";
+import { PaymentsSection } from "../_components/payments-section";
 import {
   enrolmentStatusBadgeVariant,
   enrolmentStatusLabels,
@@ -27,7 +29,10 @@ export default async function StudentDetailPage({
   const { id } = await params;
 
   const [student, programmes] = await Promise.all([
-    prisma.student.findUnique({ where: { id }, include: { programme: true } }),
+    prisma.student.findUnique({
+      where: { id },
+      include: { programme: true, payments: { orderBy: { paidAt: "desc" } } },
+    }),
     prisma.programme.findMany({ orderBy: { name: "asc" } }),
   ]);
 
@@ -40,6 +45,8 @@ export default async function StudentDetailPage({
     programme: serializeProgramme(student.programme),
   };
   const serializedProgrammes = programmes.map(serializeProgramme);
+  const serializedPayments = student.payments.map(serializePayment);
+  const balance = calculateStudentBalance(student, student.programme, student.payments);
 
   const fields: { label: string; value: React.ReactNode }[] = [
     { label: "Student ID", value: <span className="font-mono">{student.studentId}</span> },
@@ -89,6 +96,19 @@ export default async function StudentDetailPage({
               </div>
             ))}
           </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Fees & Payments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PaymentsSection
+            studentId={student.id}
+            payments={serializedPayments}
+            balance={balance}
+          />
         </CardContent>
       </Card>
     </div>

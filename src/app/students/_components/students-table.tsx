@@ -17,7 +17,10 @@ import {
 } from "@/lib/student-status";
 import type { SerializedProgramme, SerializedStudent } from "@/lib/serialize";
 
-type StudentWithProgramme = SerializedStudent & { programme: SerializedProgramme };
+type StudentWithProgramme = SerializedStudent & {
+  programme: SerializedProgramme;
+  isOverdue: boolean;
+};
 
 export function StudentsTable({
   students,
@@ -62,10 +65,11 @@ export function StudentsTable({
             </TableCell>
             <TableCell>{student.programme.name}</TableCell>
             <TableCell>{student.academicYear}</TableCell>
-            <TableCell>
+            <TableCell className="space-x-1.5">
               <Badge variant={enrolmentStatusBadgeVariant[student.status]}>
                 {enrolmentStatusLabels[student.status]}
               </Badge>
+              {student.isOverdue && <Badge variant="destructive">Overdue</Badge>}
             </TableCell>
             <TableCell className="text-right">
               <StudentFormDialog
