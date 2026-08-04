@@ -103,3 +103,37 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     throw error;
   }
 }
+
+// Genuine hard delete, for removing a mistaken entry (wrong student created,
+// duplicate, typo), not for a real student leaving, that's what WITHDRAWN is
+// for. Payment/Submission/Grade all have a required (non-cascading) relation
+// to Student, so Postgres itself rejects deleting a student who has any of
+// those on record (P2003), that's the actual safeguard, not a check written
+// here, a student with real history can't be silently erased this way.
+export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+  const auth = await requireStaff();
+  if (!auth.ok) return auth.response;
+
+  const { id } = await params;
+
+  try {
+    await prisma.student.delete({ where: { id } });
+    return new NextResponse(null, { status: 204 });
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "code" in error) {
+      if (error.code === "P2025") {
+        return NextResponse.json({ error: "Student not found" }, { status: 404 });
+      }
+      if (error.code === "P2003") {
+        return NextResponse.json(
+          {
+            error:
+              "Can't delete a student with payments, submissions, or grades on record. Set their status to Withdrawn instead.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+    throw error;
+  }
+}
