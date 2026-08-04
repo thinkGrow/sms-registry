@@ -15,25 +15,27 @@ import { Button } from "@/components/ui/button";
 import { PaymentFormDialog } from "./payment-form-dialog";
 import { OnlinePaymentDialog } from "./online-payment-dialog";
 import type { SerializedPayment } from "@/lib/serialize";
-import type { StudentBalanceInfo } from "@/lib/balance";
+import { describeDeferral, type StudentBalanceInfo } from "@/lib/balance";
 
 export function PaymentsSection({
   studentId,
   payments,
   balance,
-  deferredYears,
+  deferredAt,
   canManage,
   canPayOnline,
 }: {
   studentId: string;
   payments: SerializedPayment[];
   balance: StudentBalanceInfo;
-  deferredYears: number;
+  deferredAt: Date | string | null;
   canManage: boolean;
   canPayOnline: boolean;
 }) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const deferralLabel = describeDeferral(deferredAt ? new Date(deferredAt) : null);
 
   const paidYears = payments
     .map((p) => p.installmentYear)
@@ -74,12 +76,7 @@ export function PaymentsSection({
             </span>
             /year
           </span>
-          {deferredYears > 0 && (
-            <Badge variant="warning">
-              Deferred: +{deferredYears} year{deferredYears === 1 ? "" : "s"}{" "}
-              added to schedule
-            </Badge>
-          )}
+          {deferralLabel && <Badge variant="warning">{deferralLabel}</Badge>}
           {balance.isOverdue && (
             <Badge variant="destructive">
               Overdue (${balance.amountOwedByNow.toFixed(2)})

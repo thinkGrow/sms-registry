@@ -150,7 +150,7 @@ export default async function StudentDetailPage({
             studentId={student.id}
             payments={serializedPayments}
             balance={balance}
-            deferredYears={student.deferredYears}
+            deferredAt={student.deferredAt}
             canManage={isStaff}
             canPayOnline={!isStaff}
           />

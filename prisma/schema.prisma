@@ -71,14 +71,15 @@ model Student {
 
   status EnrolmentStatus @default(ENROLLED)
 
-  // How many years a deferral has pushed back this student's fee schedule.
-  // We don't track actual deferral start/end dates, just a flat assumption
-  // that each deferral is worth one year (see balance.ts): a Bachelor's
-  // student who defers once ends up on a 5-year schedule instead of 4, still
-  // 4 installments, just spread out by one extra year. Incremented
-  // automatically whenever status transitions into DEFERRED (see
-  // /api/students/[id]), not directly staff-editable.
-  deferredYears Int @default(0)
+  // When this student was most recently marked DEFERRED. A deferral doesn't
+  // take effect the moment staff sets it, it takes effect on the 1st of
+  // January the following year (matching how the institution actually
+  // processes deferrals, at year boundaries), and then freezes their fee
+  // schedule for one assumed year from that date before billing resumes,
+  // see balance.ts. Set automatically on transitioning into DEFERRED from
+  // another status (see /api/students/[id]), not directly staff-editable.
+  // Only the most recent deferral is tracked, not a full history.
+  deferredAt DateTime?
 
   // Optional per-student fee override (e.g. discount, financial aid, scholarship)
   // for cases where the standard programme fee doesn't apply. Deliberately kept

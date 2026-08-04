@@ -84,10 +84,11 @@ async function main() {
     },
   });
 
-  // Deferred once already (deferredYears: 1), so his schedule is pushed back
-  // a year: enrolled 2023-09-15 would normally put him 2 full years in by
-  // now, but the deferral drops that to 1, so 2 of 4 installments due
-  // (instead of 3), still unpaid, still overdue.
+  // Marked deferred back on 2024-06-01, so the deferral took effect on
+  // 2025-01-01 (next Jan 1 after that) and its one year of grace has since
+  // passed: schedule frozen at 1 year elapsed as of the effective date, then
+  // resumed normally, landing at 2 of 4 installments due by now (instead of
+  // 3 if he'd never deferred), still unpaid, still overdue.
   const david = await prisma.student.create({
     data: {
       studentId: "SMS-2025-0004",
@@ -98,7 +99,7 @@ async function main() {
       programmeId: business.id,
       academicYear: 3,
       status: "DEFERRED",
-      deferredYears: 1,
+      deferredAt: new Date("2024-06-01"),
     },
   });
 
@@ -188,7 +189,11 @@ async function main() {
     },
   });
 
-  // Deferred with a partial payment, also not overdue (no due date on this programme).
+  // Deferred with a partial payment, also not overdue (no due date on this
+  // programme). Marked deferred recently (2026-03-01), so the deferral's
+  // effective date (next Jan 1) is still in the future, demonstrating the
+  // "scheduled, not yet in effect" state, complementing David Lee's
+  // already-effective one.
   const fatima = await prisma.student.create({
     data: {
       studentId: "SMS-2025-0011",
@@ -199,6 +204,7 @@ async function main() {
       programmeId: dataScience.id,
       academicYear: 1,
       status: "DEFERRED",
+      deferredAt: new Date("2026-03-01"),
     },
   });
 

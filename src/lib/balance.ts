@@ -57,6 +57,55 @@ function fullYearsElapsed(from: Date, to: Date): number {
   return Math.max(0, years);
 }
 
+// A deferral doesn't take effect the day staff sets it, it takes effect on
+// the 1st of January the following year, matching how the institution
+// actually processes deferrals (at year boundaries, not ad hoc).
+export function deferralEffectiveDate(deferredAt: Date): Date {
+  return new Date(deferredAt.getFullYear() + 1, 0, 1);
+}
+
+// How many full years count toward the installment schedule, accounting for
+// a deferral. Three phases:
+//  1. Before the deferral has taken effect (still before next Jan 1): billed
+//     exactly as if not deferred at all, nothing changes yet.
+//  2. From the effective date, for one assumed year: frozen at whatever was
+//     already due the moment it took effect. This is what stops a deferral
+//     from retroactively un-billing a year the student had already started,
+//     it only ever holds the next not-yet-reached year back, never the
+//     current one.
+//  3. Once that one year of grace has passed: counting resumes normally from
+//     the frozen point, permanently shifting the whole schedule out by a
+//     year rather than catching back up on its own.
+function yearsElapsedForBilling(enrolmentDate: Date, now: Date, deferredAt: Date | null): number {
+  const rawYearsElapsed = fullYearsElapsed(enrolmentDate, now);
+  if (deferredAt === null) return rawYearsElapsed;
+
+  const effectiveDate = deferralEffectiveDate(deferredAt);
+  if (now < effectiveDate) return rawYearsElapsed;
+
+  const yearsElapsedAtEffectiveDate = fullYearsElapsed(enrolmentDate, effectiveDate);
+  const yearsSinceEffective = fullYearsElapsed(effectiveDate, now);
+  const extraYears = Math.max(0, yearsSinceEffective - 1);
+  return yearsElapsedAtEffectiveDate + extraYears;
+}
+
+// Human-readable summary of where a student's deferral stands, for display
+// next to their fee schedule. Returns null when they've never deferred.
+// Shown as the full frozen year (1 Jan - 31 Dec of the effective year)
+// rather than just the start date, since that's the actual window the
+// schedule is held for, not a single point in time.
+export function describeDeferral(deferredAt: Date | null): string | null {
+  if (deferredAt === null) return null;
+
+  const effectiveDate = deferralEffectiveDate(deferredAt);
+  const rangeEnd = new Date(effectiveDate.getFullYear(), 11, 31);
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const range = `${formatDate(effectiveDate)} - ${formatDate(rangeEnd)}`;
+
+  return new Date() < effectiveDate ? `Deferral scheduled: ${range}` : `Deferred: ${range}`;
+}
+
 // A student's fee override replaces the programme's standard fee entirely
 // (never both), so this is the one place that decision is made.
 export function getStudentFeeAmount(
@@ -74,14 +123,13 @@ export function getStudentFeeAmount(
 // in the same programme can have started at completely different times.
 // Installment 1 is due at enrolment; each subsequent one, one full year later.
 //
-// deferredYears shifts that schedule back: a student who has deferred has
-// effectively progressed fewer real years than the calendar suggests, so it's
-// subtracted from yearsElapsed before working out what's due by now. This is
-// what makes a deferral permanently push out the final payment date (a
-// Bachelor's student who defers once winds up on a 5-year schedule instead of
-// 4), rather than just a temporary pause that catches back up on its own.
+// See yearsElapsedForBilling above for what a deferral actually does to the
+// schedule: nothing until the next Jan 1, then frozen for a year, then
+// resumes, permanently pushing out the final payment date (a Bachelor's
+// student who defers once winds up on a 5-year schedule instead of 4)
+// rather than just a temporary pause that catches back up on its own.
 export function calculateStudentBalance(
-  student: Pick<Student, "feeOverride" | "enrolmentDate" | "deferredYears">,
+  student: Pick<Student, "feeOverride" | "enrolmentDate" | "deferredAt">,
   programme: Pick<Programme, "feeAmount" | "feeDueDate" | "degreeLevel">,
   payments: Pick<Payment, "amount">[]
 ): StudentBalanceInfo {
@@ -92,9 +140,10 @@ export function calculateStudentBalance(
   const totalInstallments = TOTAL_INSTALLMENTS[programme.degreeLevel];
   const installmentAmount = feeAmount / totalInstallments;
 
-  const yearsElapsed = Math.max(
-    0,
-    fullYearsElapsed(new Date(student.enrolmentDate), new Date()) - student.deferredYears
+  const yearsElapsed = yearsElapsedForBilling(
+    new Date(student.enrolmentDate),
+    new Date(),
+    student.deferredAt ? new Date(student.deferredAt) : null
   );
   const installmentsDueByNow = Math.min(yearsElapsed + 1, totalInstallments);
   const amountOwedByNow = installmentAmount * installmentsDueByNow - totalPaid;

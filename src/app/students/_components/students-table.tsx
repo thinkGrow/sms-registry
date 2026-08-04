@@ -18,6 +18,7 @@ import {
   enrolmentStatusBadgeVariant,
   enrolmentStatusLabels,
 } from "@/lib/student-status";
+import { describeDeferral } from "@/lib/balance";
 import type { SerializedProgramme, SerializedStudent } from "@/lib/serialize";
 
 type StudentWithProgramme = SerializedStudent & {
@@ -104,12 +105,19 @@ export function StudentsTable({
               </TableCell>
               <TableCell>{student.programme.name}</TableCell>
               <TableCell>{student.academicYear}</TableCell>
-              <TableCell className="space-x-1.5">
-                <Badge variant={enrolmentStatusBadgeVariant[student.status]}>
-                  {enrolmentStatusLabels[student.status]}
-                </Badge>
-                {student.isOverdue && (
-                  <Badge variant="destructive">Overdue</Badge>
+              <TableCell>
+                <div className="space-x-1.5">
+                  <Badge variant={enrolmentStatusBadgeVariant[student.status]}>
+                    {enrolmentStatusLabels[student.status]}
+                  </Badge>
+                  {student.isOverdue && (
+                    <Badge variant="destructive">Overdue</Badge>
+                  )}
+                </div>
+                {student.deferredAt && (
+                  <div className="text-muted-foreground mt-1 text-xs">
+                    {describeDeferral(new Date(student.deferredAt))}
+                  </div>
                 )}
               </TableCell>
               <TableCell className="flex justify-end gap-2 text-right">

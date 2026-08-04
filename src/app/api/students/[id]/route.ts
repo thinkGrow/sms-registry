@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/api-auth";
 import { studentUpdateSchema } from "@/lib/validations/student";
-import { TOTAL_INSTALLMENTS } from "@/lib/balance";
+import { TOTAL_INSTALLMENTS, deferralEffectiveDate } from "@/lib/balance";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -37,27 +37,40 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   const needsExisting =
-    parsed.data.status === "DEFERRED" ||
+    parsed.data.status !== undefined ||
     parsed.data.academicYear !== undefined ||
     parsed.data.programmeId !== undefined;
   const existing = needsExisting
     ? await prisma.student.findUnique({
         where: { id },
-        select: { status: true, programmeId: true, academicYear: true },
+        select: { status: true, programmeId: true, academicYear: true, deferredAt: true },
       })
     : null;
   if (needsExisting && existing === null) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
   }
 
-  // A deferral is assumed to be worth exactly one year added to the fee
-  // schedule (see balance.ts), so this only fires when status is actually
+  // A deferral doesn't take effect immediately, it's scheduled for next Jan
+  // 1 (see balance.ts), so this only fires when status is actually
   // transitioning into DEFERRED from something else, not on every unrelated
-  // PATCH to a student who's already deferred (which would double-count).
+  // PATCH to a student who's already deferred (which would reset the date).
   const justDeferred =
     parsed.data.status === "DEFERRED" &&
     existing !== null &&
     existing.status !== "DEFERRED";
+
+  // If staff reverses a deferral before it's actually taken effect (still
+  // before next Jan 1), it's a full cancel, nothing ever happened to the fee
+  // schedule. Once the effective date has passed, the shift already applied
+  // and stays permanent even if the student comes back off DEFERRED, so
+  // deferredAt is left alone in that case.
+  const cancelingUneffectiveDeferral =
+    existing !== null &&
+    existing.status === "DEFERRED" &&
+    existing.deferredAt !== null &&
+    parsed.data.status !== undefined &&
+    parsed.data.status !== "DEFERRED" &&
+    new Date() < deferralEffectiveDate(existing.deferredAt);
 
   // Academic year is capped by whichever programme applies after this
   // update, its current one if programmeId isn't changing, checked whenever
@@ -87,7 +100,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       where: { id },
       data: {
         ...parsed.data,
-        ...(justDeferred && { deferredYears: { increment: 1 } }),
+        ...(justDeferred && { deferredAt: new Date() }),
+        ...(cancelingUneffectiveDeferral && { deferredAt: null }),
       },
     });
     return NextResponse.json(student);
