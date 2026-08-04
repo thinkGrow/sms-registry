@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
+import type { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,9 +51,8 @@ export function StudentFormDialog({
     handleSubmit,
     reset,
     control,
-    watch,
     formState: { errors, isSubmitting },
-  } = useForm<StudentCreateInput>({
+  } = useForm<z.input<typeof studentCreateSchema>, unknown, StudentCreateInput>({
     resolver: zodResolver(studentCreateSchema),
     defaultValues: student
       ? {
@@ -82,12 +82,12 @@ export function StudentFormDialog({
   // enforced directly here: an inline error the moment the typed value
   // exceeds it, and the Save button disabled, not just a server-side
   // rejection after a round trip.
-  const selectedProgrammeId = watch("programmeId");
+  const selectedProgrammeId = useWatch({ control, name: "programmeId" });
   const selectedProgramme = programmes.find((p) => p.id === selectedProgrammeId);
   const maxAcademicYear = selectedProgramme
     ? TOTAL_INSTALLMENTS[selectedProgramme.degreeLevel]
     : undefined;
-  const watchedAcademicYear = watch("academicYear");
+  const watchedAcademicYear = useWatch({ control, name: "academicYear" });
   const academicYearExceedsMax =
     maxAcademicYear !== undefined &&
     Number.isFinite(watchedAcademicYear) &&
@@ -165,7 +165,9 @@ export function StudentFormDialog({
                   id="dateOfBirth"
                   type="date"
                   value={
-                    field.value ? new Date(field.value).toISOString().slice(0, 10) : ""
+                    field.value
+                      ? new Date(field.value as Date).toISOString().slice(0, 10)
+                      : ""
                   }
                   onChange={(e) =>
                     field.onChange(e.target.value ? new Date(e.target.value) : undefined)
@@ -188,7 +190,9 @@ export function StudentFormDialog({
                   id="enrolmentDate"
                   type="date"
                   value={
-                    field.value ? new Date(field.value).toISOString().slice(0, 10) : ""
+                    field.value
+                      ? new Date(field.value as Date).toISOString().slice(0, 10)
+                      : ""
                   }
                   onChange={(e) =>
                     field.onChange(e.target.value ? new Date(e.target.value) : undefined)
