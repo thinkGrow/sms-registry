@@ -16,6 +16,7 @@ import {
 import { switchToStaff, switchToStudent } from "@/lib/session-actions";
 import type { Session } from "@/lib/session";
 import { enrolmentStatusBadgeVariant, enrolmentStatusLabels } from "@/lib/student-status";
+import { effectiveStatus } from "@/lib/balance";
 import type { EnrolmentStatus } from "@/generated/prisma/enums";
 
 type StudentOption = {
@@ -23,6 +24,7 @@ type StudentOption = {
   fullName: string;
   studentId: string;
   status: EnrolmentStatus;
+  deferredAt: Date | null;
 };
 
 export function Nav({
@@ -37,6 +39,12 @@ export function Nav({
 
   const currentStudent =
     session.role === "STUDENT" ? students.find((s) => s.id === session.studentId) : null;
+  const currentStudentStatus = currentStudent
+    ? effectiveStatus(
+        currentStudent.status,
+        currentStudent.deferredAt ? new Date(currentStudent.deferredAt) : null
+      )
+    : null;
 
   const links =
     session.role === "STAFF"
@@ -45,11 +53,13 @@ export function Nav({
           { href: "/students", label: "Students" },
           { href: "/assessments", label: "Assessments" },
           { href: "/programmes", label: "Programmes" },
+          { href: "/policy", label: "Policy" },
         ]
       : [
           { href: `/students/${session.studentId}`, label: "My Profile" },
           { href: "/assessments", label: "Assessments" },
           { href: "/programmes", label: "Programmes" },
+          { href: "/policy", label: "Policy" },
         ];
 
   return (
@@ -63,9 +73,9 @@ export function Nav({
             ) : (
               <>
                 <span className="font-medium">{currentStudent?.fullName}</span>
-                {currentStudent && (
-                  <Badge variant={enrolmentStatusBadgeVariant[currentStudent.status]}>
-                    {enrolmentStatusLabels[currentStudent.status]}
+                {currentStudentStatus && (
+                  <Badge variant={enrolmentStatusBadgeVariant[currentStudentStatus]}>
+                    {enrolmentStatusLabels[currentStudentStatus]}
                   </Badge>
                 )}
               </>

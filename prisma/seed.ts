@@ -84,11 +84,10 @@ async function main() {
     },
   });
 
-  // Marked deferred back on 2024-06-01, so the deferral took effect on
-  // 2025-01-01 (next Jan 1 after that) and its one year of grace has since
-  // passed: schedule frozen at 1 year elapsed as of the effective date, then
-  // resumed normally, landing at 2 of 4 installments due by now (instead of
-  // 3 if he'd never deferred), still unpaid, still overdue.
+  // Deferred once already (deferredAt: 2024-06-01), so his schedule is
+  // pushed back a year: enrolled 2023-09-15 would normally put him 2 full
+  // years in by now, but the deferral drops that to 1, so 2 of 4
+  // installments due (instead of 3), still unpaid, still overdue.
   const david = await prisma.student.create({
     data: {
       studentId: "SMS-2025-0004",
@@ -103,7 +102,11 @@ async function main() {
     },
   });
 
-  // Withdrawn, with a partial payment on record before they left.
+  // Withdrawn, with a partial payment on record before they left. Withdrawn
+  // 2025-11-01, so the withdrawal's effective date (next Jan 1) was
+  // 2026-01-01, already passed, and the freeze is permanent from there, 1
+  // of 4 installments due, frozen for good regardless of how much more
+  // calendar time passes.
   const emma = await prisma.student.create({
     data: {
       studentId: "SMS-2025-0005",
@@ -114,6 +117,7 @@ async function main() {
       programmeId: cs.id,
       academicYear: 1,
       status: "WITHDRAWN",
+      withdrawnAt: new Date("2025-11-01"),
     },
   });
 

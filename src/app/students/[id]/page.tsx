@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { serializeProgramme, serializeStudent, serializePayment } from "@/lib/serialize";
-import { calculateStudentBalance } from "@/lib/balance";
+import { calculateStudentBalance, effectiveStatus } from "@/lib/balance";
 import { getSession } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +71,7 @@ export default async function StudentDetailPage({
   const serializedProgrammes = programmes.map(serializeProgramme);
   const serializedPayments = student.payments.map(serializePayment);
   const balance = calculateStudentBalance(student, student.programme, student.payments);
+  const status = effectiveStatus(student.status, student.deferredAt);
 
   // Students only see published results; staff see everything, including
   // grades still being withheld.
@@ -89,8 +90,8 @@ export default async function StudentDetailPage({
     {
       label: "Enrolment status",
       value: (
-        <Badge variant={enrolmentStatusBadgeVariant[student.status]}>
-          {enrolmentStatusLabels[student.status]}
+        <Badge variant={enrolmentStatusBadgeVariant[status]}>
+          {enrolmentStatusLabels[status]}
         </Badge>
       ),
     },
@@ -151,6 +152,7 @@ export default async function StudentDetailPage({
             payments={serializedPayments}
             balance={balance}
             deferredAt={student.deferredAt}
+            withdrawnAt={student.withdrawnAt}
             canManage={isStaff}
             canPayOnline={!isStaff}
           />

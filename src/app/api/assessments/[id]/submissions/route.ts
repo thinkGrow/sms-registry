@@ -4,6 +4,7 @@ import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import { requireSelf } from "@/lib/api-auth";
+import { effectiveStatus } from "@/lib/balance";
 import {
   submissionCreateSchema,
   ACCEPTED_FILE_TYPES,
@@ -58,14 +59,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   if (!student) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
   }
-  if (student.status !== "ENROLLED") {
+  // A deferral auto-reverts to ENROLLED once its year of grace ends (this
+  // app has no scheduler to flip the stored status on its own, so it's
+  // computed here instead, same principle as every other derived value).
+  // WITHDRAWN never auto-reverts, that one's permanent.
+  const status = effectiveStatus(student.status, student.deferredAt);
+  if (status !== "ENROLLED") {
     const reason: Record<"DEFERRED" | "WITHDRAWN" | "COMPLETED", string> = {
       DEFERRED: "You've deferred your studies, so you can't submit assessment work until you resume.",
       WITHDRAWN: "You've withdrawn from your programme, so you can no longer submit assessment work.",
       COMPLETED: "You've completed your programme, so you can no longer submit assessment work.",
     };
     return NextResponse.json(
-      { error: reason[student.status as "DEFERRED" | "WITHDRAWN" | "COMPLETED"] },
+      { error: reason[status as "DEFERRED" | "WITHDRAWN" | "COMPLETED"] },
       { status: 403 }
     );
   }

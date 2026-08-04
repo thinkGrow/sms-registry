@@ -78,8 +78,29 @@ model Student {
   // schedule for one assumed year from that date before billing resumes,
   // see balance.ts. Set automatically on transitioning into DEFERRED from
   // another status (see /api/students/[id]), not directly staff-editable.
-  // Only the most recent deferral is tracked, not a full history.
+  // Only the most recent deferral's own date is tracked, not a full
+  // history, deferredYearsBanked below is what lets a second deferral still
+  // compound with an earlier, already-resolved one.
   deferredAt DateTime?
+
+  // Each time a new deferral starts, if the previous one had already fully
+  // resolved (past its own year of grace), its one year of delay is banked
+  // here permanently before deferredAt is overwritten with the new date.
+  // Without this, a second deferral would silently erase the first one's
+  // already-earned delay, since the effective-date math for the new
+  // deferral is computed fresh from enrolmentDate and has no way to know a
+  // year was previously frozen. A student can't have two deferrals
+  // overlapping (staff must set status back to ENROLLED before a new one
+  // can start), so each one's contribution is exactly one full year, never
+  // partial.
+  deferredYearsBanked Int @default(0)
+
+  // When this student was most recently marked WITHDRAWN. Same next-Jan-1
+  // effective-date rule as deferredAt, but permanent rather than a one year
+  // freeze: fee schedule is billed normally up to the effective date, then
+  // frozen there forever, they owe whatever was due through the end of the
+  // year they withdrew in and nothing further accrues. See balance.ts.
+  withdrawnAt DateTime?
 
   // Optional per-student fee override (e.g. discount, financial aid, scholarship)
   // for cases where the standard programme fee doesn't apply. Deliberately kept

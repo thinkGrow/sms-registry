@@ -42,6 +42,8 @@ export function serializeStudent(student: Student): SerializedStudent {
     feeOverride:
       student.feeOverride !== null ? Number(student.feeOverride) : null,
     deferredAt: student.deferredAt,
+    deferredYearsBanked: student.deferredYearsBanked,
+    withdrawnAt: student.withdrawnAt,
     createdAt: student.createdAt,
     updatedAt: student.updatedAt,
   };

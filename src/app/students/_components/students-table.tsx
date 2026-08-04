@@ -18,7 +18,7 @@ import {
   enrolmentStatusBadgeVariant,
   enrolmentStatusLabels,
 } from "@/lib/student-status";
-import { describeDeferral } from "@/lib/balance";
+import { describeDeferral, describeWithdrawal, effectiveStatus } from "@/lib/balance";
 import type { SerializedProgramme, SerializedStudent } from "@/lib/serialize";
 
 type StudentWithProgramme = SerializedStudent & {
@@ -82,7 +82,12 @@ export function StudentsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {students.map((student) => (
+          {students.map((student) => {
+            const status = effectiveStatus(
+              student.status,
+              student.deferredAt ? new Date(student.deferredAt) : null
+            );
+            return (
             <TableRow key={student.id}>
               <TableCell className="font-mono text-sm">
                 <Link
@@ -107,8 +112,8 @@ export function StudentsTable({
               <TableCell>{student.academicYear}</TableCell>
               <TableCell>
                 <div className="space-x-1.5">
-                  <Badge variant={enrolmentStatusBadgeVariant[student.status]}>
-                    {enrolmentStatusLabels[student.status]}
+                  <Badge variant={enrolmentStatusBadgeVariant[status]}>
+                    {enrolmentStatusLabels[status]}
                   </Badge>
                   {student.isOverdue && (
                     <Badge variant="destructive">Overdue</Badge>
@@ -117,6 +122,11 @@ export function StudentsTable({
                 {student.deferredAt && (
                   <div className="text-muted-foreground mt-1 text-xs">
                     {describeDeferral(new Date(student.deferredAt))}
+                  </div>
+                )}
+                {student.withdrawnAt && (
+                  <div className="text-muted-foreground mt-1 text-xs">
+                    {describeWithdrawal(new Date(student.withdrawnAt))}
                   </div>
                 )}
               </TableCell>
@@ -144,7 +154,8 @@ export function StudentsTable({
                 </Button>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>

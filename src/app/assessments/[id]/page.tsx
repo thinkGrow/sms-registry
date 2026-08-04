@@ -22,6 +22,7 @@ import {
   classificationLabels,
   classificationBadgeVariant,
 } from "@/lib/classification";
+import { effectiveStatus } from "@/lib/balance";
 
 export default async function AssessmentDetailPage({
   params,
@@ -73,7 +74,13 @@ export default async function AssessmentDetailPage({
       ? await prisma.student.findUnique({ where: { id: session.studentId } })
       : null;
   const isCorrectProgramme = currentStudent?.programmeId === assessment.programmeId;
-  const isEnrolled = currentStudent?.status === "ENROLLED";
+  // A deferral auto-reverts to ENROLLED once its grace year ends, computed
+  // here rather than stored (see effectiveStatus in balance.ts), so this
+  // reads the live status, not whatever DEFERRED/ENROLLED was last set.
+  const currentStudentStatus = currentStudent
+    ? effectiveStatus(currentStudent.status, currentStudent.deferredAt)
+    : undefined;
+  const isEnrolled = currentStudentStatus === "ENROLLED";
   const canCurrentStudentSubmit =
     session.role === "STUDENT" && isCorrectProgramme && isEnrolled;
 
@@ -189,9 +196,9 @@ export default async function AssessmentDetailPage({
               <p className="text-muted-foreground text-sm">
                 {!isCorrectProgramme
                   ? "This assessment isn't open to your programme."
-                  : currentStudent?.status === "DEFERRED"
+                  : currentStudentStatus === "DEFERRED"
                     ? "You've deferred your studies, so you can't submit assessment work until you resume."
-                    : currentStudent?.status === "WITHDRAWN"
+                    : currentStudentStatus === "WITHDRAWN"
                       ? "You've withdrawn from your programme, so you can no longer submit assessment work."
                       : "You've completed your programme, so you can no longer submit assessment work."}
               </p>

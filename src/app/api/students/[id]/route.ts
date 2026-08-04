@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/api-auth";
 import { studentUpdateSchema } from "@/lib/validations/student";
-import { TOTAL_INSTALLMENTS, deferralEffectiveDate } from "@/lib/balance";
+import {
+  TOTAL_INSTALLMENTS,
+  deferralEffectiveDate,
+  deferralGraceEndDate,
+  withdrawalEffectiveDate,
+} from "@/lib/balance";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -43,7 +48,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const existing = needsExisting
     ? await prisma.student.findUnique({
         where: { id },
-        select: { status: true, programmeId: true, academicYear: true, deferredAt: true },
+        select: {
+          status: true,
+          programmeId: true,
+          academicYear: true,
+          deferredAt: true,
+          deferredYearsBanked: true,
+          withdrawnAt: true,
+        },
       })
     : null;
   if (needsExisting && existing === null) {
@@ -71,6 +83,34 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     parsed.data.status !== undefined &&
     parsed.data.status !== "DEFERRED" &&
     new Date() < deferralEffectiveDate(existing.deferredAt);
+
+  // Students can't have two deferrals overlapping, staff must set status
+  // back to ENROLLED before a new one can start, so if this new deferral
+  // follows an earlier one that had already fully run its year of grace,
+  // that year needs to be permanently banked before deferredAt is
+  // overwritten, otherwise the new deferral's fresh effective-date math has
+  // no way to know a year was already frozen, and would silently erase it.
+  const bankingPriorDeferral =
+    justDeferred &&
+    existing !== null &&
+    existing.deferredAt !== null &&
+    new Date() >= deferralGraceEndDate(existing.deferredAt);
+
+  // Same effective-date rule as a deferral, but withdrawal has no third
+  // "resumes counting" phase, so reversing it after the effective date has
+  // passed just leaves the permanent freeze in place, same as a deferral.
+  const justWithdrawn =
+    parsed.data.status === "WITHDRAWN" &&
+    existing !== null &&
+    existing.status !== "WITHDRAWN";
+
+  const cancelingUneffectiveWithdrawal =
+    existing !== null &&
+    existing.status === "WITHDRAWN" &&
+    existing.withdrawnAt !== null &&
+    parsed.data.status !== undefined &&
+    parsed.data.status !== "WITHDRAWN" &&
+    new Date() < withdrawalEffectiveDate(existing.withdrawnAt);
 
   // Academic year is capped by whichever programme applies after this
   // update, its current one if programmeId isn't changing, checked whenever
@@ -101,7 +141,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       data: {
         ...parsed.data,
         ...(justDeferred && { deferredAt: new Date() }),
+        ...(bankingPriorDeferral && { deferredYearsBanked: { increment: 1 } }),
         ...(cancelingUneffectiveDeferral && { deferredAt: null }),
+        ...(justWithdrawn && { withdrawnAt: new Date() }),
+        ...(cancelingUneffectiveWithdrawal && { withdrawnAt: null }),
       },
     });
     return NextResponse.json(student);

@@ -33,7 +33,7 @@ export default async function RootLayout({
   const [session, students] = await Promise.all([
     getSession(),
     prisma.student.findMany({
-      select: { id: true, fullName: true, studentId: true, status: true },
+      select: { id: true, fullName: true, studentId: true, status: true, deferredAt: true },
       orderBy: { fullName: "asc" },
     }),
   ]);
