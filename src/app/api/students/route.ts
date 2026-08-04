@@ -6,6 +6,7 @@ import {
   studentCreateSchema,
   enrolmentStatusValues,
 } from "@/lib/validations/student";
+import { TOTAL_INSTALLMENTS } from "@/lib/balance";
 
 // GET /api/students?search=&programmeId=&status=
 // search matches against full name or student id (case-insensitive).
@@ -49,6 +50,22 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  const programme = await prisma.programme.findUnique({
+    where: { id: parsed.data.programmeId },
+  });
+  if (!programme) {
+    return NextResponse.json({ error: "Programme not found" }, { status: 404 });
+  }
+  const maxAcademicYear = TOTAL_INSTALLMENTS[programme.degreeLevel];
+  if (parsed.data.academicYear > maxAcademicYear) {
+    return NextResponse.json(
+      {
+        error: `Academic year can't exceed ${maxAcademicYear} for this programme's degree length.`,
+      },
       { status: 400 }
     );
   }

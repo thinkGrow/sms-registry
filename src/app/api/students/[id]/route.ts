@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/api-auth";
 import { studentUpdateSchema } from "@/lib/validations/student";
+import { TOTAL_INSTALLMENTS } from "@/lib/balance";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -35,17 +36,50 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     );
   }
 
+  const needsExisting =
+    parsed.data.status === "DEFERRED" ||
+    parsed.data.academicYear !== undefined ||
+    parsed.data.programmeId !== undefined;
+  const existing = needsExisting
+    ? await prisma.student.findUnique({
+        where: { id },
+        select: { status: true, programmeId: true, academicYear: true },
+      })
+    : null;
+  if (needsExisting && existing === null) {
+    return NextResponse.json({ error: "Student not found" }, { status: 404 });
+  }
+
   // A deferral is assumed to be worth exactly one year added to the fee
   // schedule (see balance.ts), so this only fires when status is actually
   // transitioning into DEFERRED from something else, not on every unrelated
   // PATCH to a student who's already deferred (which would double-count).
-  let justDeferred = false;
-  if (parsed.data.status === "DEFERRED") {
-    const existing = await prisma.student.findUnique({
-      where: { id },
-      select: { status: true },
+  const justDeferred =
+    parsed.data.status === "DEFERRED" &&
+    existing !== null &&
+    existing.status !== "DEFERRED";
+
+  // Academic year is capped by whichever programme applies after this
+  // update, its current one if programmeId isn't changing, checked whenever
+  // either field is part of the update.
+  if (parsed.data.academicYear !== undefined || parsed.data.programmeId !== undefined) {
+    const effectiveProgrammeId = parsed.data.programmeId ?? existing!.programmeId;
+    const effectiveAcademicYear = parsed.data.academicYear ?? existing!.academicYear;
+    const programme = await prisma.programme.findUnique({
+      where: { id: effectiveProgrammeId },
     });
-    justDeferred = existing !== null && existing.status !== "DEFERRED";
+    if (!programme) {
+      return NextResponse.json({ error: "Programme not found" }, { status: 404 });
+    }
+    const maxAcademicYear = TOTAL_INSTALLMENTS[programme.degreeLevel];
+    if (effectiveAcademicYear > maxAcademicYear) {
+      return NextResponse.json(
+        {
+          error: `Academic year can't exceed ${maxAcademicYear} for this programme's degree length.`,
+        },
+        { status: 400 }
+      );
+    }
   }
 
   try {

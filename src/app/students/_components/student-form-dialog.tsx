@@ -28,6 +28,7 @@ import {
   type StudentCreateInput,
 } from "@/lib/validations/student";
 import { enrolmentStatusLabels } from "@/lib/student-status";
+import { TOTAL_INSTALLMENTS } from "@/lib/balance";
 import type { SerializedProgramme, SerializedStudent } from "@/lib/serialize";
 
 type StudentFormDialogProps = {
@@ -49,6 +50,7 @@ export function StudentFormDialog({
     handleSubmit,
     reset,
     control,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<StudentCreateInput>({
     resolver: zodResolver(studentCreateSchema),
@@ -63,8 +65,33 @@ export function StudentFormDialog({
           status: student.status,
           feeOverride: student.feeOverride ?? undefined,
         }
-      : { status: "ENROLLED" },
+      : {
+          // A new student is being enrolled right now, so today is the
+          // obvious default, still editable for a backdated entry.
+          enrolmentDate: new Date(),
+          status: "ENROLLED",
+        },
   });
+
+  // Academic year is capped by the selected programme's degree length (4
+  // years for a Bachelor's, 2 for a Master's), same mapping balance.ts uses
+  // to split fees into installments, so re-used here rather than duplicated.
+  // The HTML max attribute alone only affects the input's spinner arrows,
+  // not typed or pasted values, and the Zod schema has no upper bound (it
+  // can't, the limit depends on which programme is selected), so this is
+  // enforced directly here: an inline error the moment the typed value
+  // exceeds it, and the Save button disabled, not just a server-side
+  // rejection after a round trip.
+  const selectedProgrammeId = watch("programmeId");
+  const selectedProgramme = programmes.find((p) => p.id === selectedProgrammeId);
+  const maxAcademicYear = selectedProgramme
+    ? TOTAL_INSTALLMENTS[selectedProgramme.degreeLevel]
+    : undefined;
+  const watchedAcademicYear = watch("academicYear");
+  const academicYearExceedsMax =
+    maxAcademicYear !== undefined &&
+    Number.isFinite(watchedAcademicYear) &&
+    watchedAcademicYear > maxAcademicYear;
 
   async function onSubmit(values: StudentCreateInput) {
     setSubmitError(null);
@@ -181,7 +208,7 @@ export function StudentFormDialog({
               control={control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger id="programmeId">
+                  <SelectTrigger id="programmeId" className="w-full">
                     <SelectValue placeholder="Select a programme">
                       {(value: string) =>
                         value
@@ -211,11 +238,22 @@ export function StudentFormDialog({
               id="academicYear"
               type="number"
               min={1}
+              max={maxAcademicYear}
               {...register("academicYear", { valueAsNumber: true })}
             />
             {errors.academicYear && (
               <p className="text-destructive text-sm">{errors.academicYear.message}</p>
             )}
+            {academicYearExceedsMax && (
+              <p className="text-destructive text-sm">
+                Academic year can&apos;t exceed {maxAcademicYear} for this programme.
+              </p>
+            )}
+            <p className="text-muted-foreground text-xs">
+              {maxAcademicYear
+                ? `1–${maxAcademicYear} for this programme's degree length.`
+                : "Select a programme to see its valid range."}
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -225,7 +263,7 @@ export function StudentFormDialog({
               control={control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger id="status">
+                  <SelectTrigger id="status" className="w-full">
                     <SelectValue>
                       {(value: string) =>
                         enrolmentStatusLabels[value as keyof typeof enrolmentStatusLabels]
@@ -258,12 +296,15 @@ export function StudentFormDialog({
             {errors.feeOverride && (
               <p className="text-destructive text-sm">{errors.feeOverride.message}</p>
             )}
+            <p className="text-muted-foreground text-xs">
+              This is the total fee for the whole programme.
+            </p>
           </div>
 
           {submitError && <p className="text-destructive text-sm">{submitError}</p>}
 
           <DialogFooter>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || academicYearExceedsMax}>
               {isSubmitting ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
