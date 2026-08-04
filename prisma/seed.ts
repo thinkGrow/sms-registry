@@ -55,8 +55,8 @@ async function main() {
     },
   });
 
-  // Partial payment: 2 years in, so 2 installments (of 4) are due by now, and
-  // only enough has been paid to cover a bit less than one, appears overdue.
+  // Partial payment: 2 years in, so 2 installments (of 4) are due by now, but
+  // only 1 has been paid, so he's exactly one installment ($1,250) overdue.
   const brian = await prisma.student.create({
     data: {
       studentId: "SMS-2025-0002",
@@ -158,9 +158,9 @@ async function main() {
     },
   });
 
-  // Pays in two installments rather than a single lump sum; paid enough to
-  // cover both installments due so far (2 years in), so not overdue despite
-  // not having paid the full programme fee yet.
+  // Pays year by year rather than all at once: 2 years in, has paid exactly
+  // the 2 installments due so far ($2,500 of a $5,000 fee), so not overdue
+  // despite not having paid the full programme fee yet.
   const isla = await prisma.student.create({
     data: {
       studentId: "SMS-2025-0009",
@@ -246,74 +246,212 @@ async function main() {
   // not a specific year), so they're left without one rather than guessing
   // which year each amount was meant to cover. Every payment recorded
   // through the app from now on always has a year.
+  // Every payment is a specific installment year at that student's own fixed
+  // per-year rate (feeAmount / totalInstallments, or the fee override for
+  // Grace), never a free-form amount. CS installments are $1,250/year,
+  // Business $1,000/year, Data Science (Masters, 2 installments) $3,000/year,
+  // Grace's overridden fee is $750/year.
   await prisma.payment.createMany({
     data: [
+      // Alice: fully paid, all 4 CS installments upfront.
       {
         referenceNumber: "PMT-2026-000001",
         studentId: alice.id,
-        amount: 5000,
-        paidAt: new Date("2026-06-15"),
+        installmentYear: 1,
+        amount: 1250,
+        paidAt: new Date("2025-10-01"),
       },
       {
         referenceNumber: "PMT-2026-000002",
-        studentId: brian.id,
-        amount: 2000,
-        paidAt: new Date("2026-06-20"),
+        studentId: alice.id,
+        installmentYear: 2,
+        amount: 1250,
+        paidAt: new Date("2026-01-15"),
       },
       {
         referenceNumber: "PMT-2026-000003",
-        studentId: emma.id,
-        amount: 1000,
-        paidAt: new Date("2026-06-10"),
+        studentId: alice.id,
+        installmentYear: 3,
+        amount: 1250,
+        paidAt: new Date("2026-04-01"),
       },
       {
         referenceNumber: "PMT-2026-000004",
-        studentId: farid.id,
-        amount: 4000,
-        paidAt: new Date("2026-06-01"),
+        studentId: alice.id,
+        installmentYear: 4,
+        amount: 1250,
+        paidAt: new Date("2026-06-15"),
       },
+      // Brian: only year 1 paid, 2 installments due by now, appears overdue.
       {
         referenceNumber: "PMT-2026-000005",
-        studentId: grace.id,
-        amount: 3000,
-        paidAt: new Date("2026-06-18"),
+        studentId: brian.id,
+        installmentYear: 1,
+        amount: 1250,
+        paidAt: new Date("2024-10-01"),
       },
-      // Isla pays in two installments rather than one lump sum.
+      // Emma: one installment paid before withdrawing.
       {
         referenceNumber: "PMT-2026-000006",
-        studentId: isla.id,
-        amount: 2000,
-        paidAt: new Date("2026-06-05"),
+        studentId: emma.id,
+        installmentYear: 1,
+        amount: 1250,
+        paidAt: new Date("2025-10-15"),
       },
+      // Farid: fully paid across all 4 Business installments before completing.
       {
         referenceNumber: "PMT-2026-000007",
-        studentId: isla.id,
-        amount: 1500,
-        paidAt: new Date("2026-06-25"),
+        studentId: farid.id,
+        installmentYear: 1,
+        amount: 1000,
+        paidAt: new Date("2024-10-01"),
       },
       {
         referenceNumber: "PMT-2026-000008",
-        studentId: jamal.id,
-        amount: 4000,
-        paidAt: new Date("2026-06-12"),
+        studentId: farid.id,
+        installmentYear: 2,
+        amount: 1000,
+        paidAt: new Date("2025-01-15"),
       },
       {
         referenceNumber: "PMT-2026-000009",
-        studentId: fatima.id,
-        amount: 2000,
-        paidAt: new Date("2026-06-08"),
+        studentId: farid.id,
+        installmentYear: 3,
+        amount: 1000,
+        paidAt: new Date("2025-06-01"),
       },
       {
         referenceNumber: "PMT-2026-000010",
-        studentId: liam.id,
-        amount: 5000,
-        paidAt: new Date("2026-06-22"),
+        studentId: farid.id,
+        installmentYear: 4,
+        amount: 1000,
+        paidAt: new Date("2025-09-01"),
       },
+      // Grace: fully paid across all 4 installments, at her overridden rate.
       {
         referenceNumber: "PMT-2026-000011",
+        studentId: grace.id,
+        installmentYear: 1,
+        amount: 750,
+        paidAt: new Date("2023-10-01"),
+      },
+      {
+        referenceNumber: "PMT-2026-000012",
+        studentId: grace.id,
+        installmentYear: 2,
+        amount: 750,
+        paidAt: new Date("2024-06-01"),
+      },
+      {
+        referenceNumber: "PMT-2026-000013",
+        studentId: grace.id,
+        installmentYear: 3,
+        amount: 750,
+        paidAt: new Date("2025-06-01"),
+      },
+      {
+        referenceNumber: "PMT-2026-000014",
+        studentId: grace.id,
+        installmentYear: 4,
+        amount: 750,
+        paidAt: new Date("2026-06-01"),
+      },
+      // Isla: years 1 and 2, exactly matching the 2 installments due so far.
+      {
+        referenceNumber: "PMT-2026-000015",
+        studentId: isla.id,
+        installmentYear: 1,
+        amount: 1250,
+        paidAt: new Date("2024-10-05"),
+      },
+      {
+        referenceNumber: "PMT-2026-000016",
+        studentId: isla.id,
+        installmentYear: 2,
+        amount: 1250,
+        paidAt: new Date("2025-10-25"),
+      },
+      // Jamal: fully paid across all 4 Business installments.
+      {
+        referenceNumber: "PMT-2026-000017",
+        studentId: jamal.id,
+        installmentYear: 1,
+        amount: 1000,
+        paidAt: new Date("2022-10-01"),
+      },
+      {
+        referenceNumber: "PMT-2026-000018",
+        studentId: jamal.id,
+        installmentYear: 2,
+        amount: 1000,
+        paidAt: new Date("2023-06-01"),
+      },
+      {
+        referenceNumber: "PMT-2026-000019",
+        studentId: jamal.id,
+        installmentYear: 3,
+        amount: 1000,
+        paidAt: new Date("2024-06-01"),
+      },
+      {
+        referenceNumber: "PMT-2026-000020",
+        studentId: jamal.id,
+        installmentYear: 4,
+        amount: 1000,
+        paidAt: new Date("2025-06-01"),
+      },
+      // Fatima: one of two Masters installments paid, not overdue regardless
+      // (no due date on this programme).
+      {
+        referenceNumber: "PMT-2026-000021",
+        studentId: fatima.id,
+        installmentYear: 1,
+        amount: 3000,
+        paidAt: new Date("2025-10-08"),
+      },
+      // Liam: fully paid across all 4 CS installments.
+      {
+        referenceNumber: "PMT-2026-000022",
+        studentId: liam.id,
+        installmentYear: 1,
+        amount: 1250,
+        paidAt: new Date("2023-10-22"),
+      },
+      {
+        referenceNumber: "PMT-2026-000023",
+        studentId: liam.id,
+        installmentYear: 2,
+        amount: 1250,
+        paidAt: new Date("2024-06-22"),
+      },
+      {
+        referenceNumber: "PMT-2026-000024",
+        studentId: liam.id,
+        installmentYear: 3,
+        amount: 1250,
+        paidAt: new Date("2025-06-22"),
+      },
+      {
+        referenceNumber: "PMT-2026-000025",
+        studentId: liam.id,
+        installmentYear: 4,
+        amount: 1250,
+        paidAt: new Date("2026-06-22"),
+      },
+      // Noah: fully paid across both Masters installments before completing.
+      {
+        referenceNumber: "PMT-2026-000026",
         studentId: noah.id,
-        amount: 6000,
-        paidAt: new Date("2026-05-20"),
+        installmentYear: 1,
+        amount: 3000,
+        paidAt: new Date("2024-10-20"),
+      },
+      {
+        referenceNumber: "PMT-2026-000027",
+        studentId: noah.id,
+        installmentYear: 2,
+        amount: 3000,
+        paidAt: new Date("2025-10-20"),
       },
     ],
   });
@@ -581,7 +719,7 @@ async function main() {
   });
 
   console.log(
-    "Seed complete: 3 programmes, 14 students, 11 payments, 5 assessments, 13 submissions, 9 grades.",
+    "Seed complete: 3 programmes, 14 students, 27 payments, 5 assessments, 13 submissions, 9 grades.",
   );
 }
 
