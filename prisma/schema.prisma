@@ -102,6 +102,14 @@ model Student {
   // year they withdrew in and nothing further accrues. See balance.ts.
   withdrawnAt DateTime?
 
+  // When this student was most recently marked COMPLETED. Unlike deferredAt/
+  // withdrawnAt there's no effective-date delay, completion is immediate
+  // (staff only allow it once fees are clear, see /api/students/[id]), this
+  // just anchors which assessments still show up for them: anything due
+  // after the calendar year they graduated in is filtered out of their
+  // assessments list, see /assessments.
+  completedAt DateTime?
+
   // Optional per-student fee override (e.g. discount, financial aid, scholarship)
   // for cases where the standard programme fee doesn't apply. Deliberately kept
   // as a single field rather than a full financial-aid/scholarship subsystem,

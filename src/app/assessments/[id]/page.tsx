@@ -74,6 +74,18 @@ export default async function AssessmentDetailPage({
       ? await prisma.student.findUnique({ where: { id: session.studentId } })
       : null;
   const isCorrectProgramme = currentStudent?.programmeId === assessment.programmeId;
+
+  // The assessments list already hides anything due after the year a
+  // student graduated in (see /assessments), a direct link to one shouldn't
+  // work either, same as if it never existed for them.
+  if (
+    session.role === "STUDENT" &&
+    currentStudent?.status === "COMPLETED" &&
+    currentStudent.completedAt &&
+    new Date(assessment.deadline).getFullYear() > currentStudent.completedAt.getFullYear()
+  ) {
+    notFound();
+  }
   // A deferral auto-reverts to ENROLLED once its grace year ends, computed
   // here rather than stored (see effectiveStatus in balance.ts), so this
   // reads the live status, not whatever DEFERRED/ENROLLED was last set.

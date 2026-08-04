@@ -44,6 +44,7 @@ export function serializeStudent(student: Student): SerializedStudent {
     deferredAt: student.deferredAt,
     deferredYearsBanked: student.deferredYearsBanked,
     withdrawnAt: student.withdrawnAt,
+    completedAt: student.completedAt,
     createdAt: student.createdAt,
     updatedAt: student.updatedAt,
   };

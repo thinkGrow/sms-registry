@@ -56,6 +56,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           deferredAt: true,
           deferredYearsBanked: true,
           withdrawnAt: true,
+          completedAt: true,
         },
       })
     : null;
@@ -143,6 +144,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
   }
 
+  // Reversing a Completed status (e.g. a staff correction) clears
+  // completedAt too, since it no longer reflects a real graduation date and
+  // would otherwise keep hiding assessments from a student who isn't
+  // actually done.
+  const cancelingCompleted =
+    existing !== null &&
+    existing.status === "COMPLETED" &&
+    parsed.data.status !== undefined &&
+    parsed.data.status !== "COMPLETED";
+
   // Academic year is capped by whichever programme applies after this
   // update, its current one if programmeId isn't changing, checked whenever
   // either field is part of the update.
@@ -176,6 +187,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         ...(cancelingUneffectiveDeferral && { deferredAt: null }),
         ...(justWithdrawn && { withdrawnAt: new Date() }),
         ...(cancelingUneffectiveWithdrawal && { withdrawnAt: null }),
+        ...(justCompleted && { completedAt: new Date() }),
+        ...(cancelingCompleted && { completedAt: null }),
       },
     });
     return NextResponse.json(student);

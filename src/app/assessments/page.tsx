@@ -34,12 +34,23 @@ export default async function AssessmentsPage({
   // picker entirely. Staff pick a programme first (below), then see that
   // programme's assessments grouped by module, rather than every
   // programme's assessments at once.
-  const ownProgrammeId =
+  const currentStudent =
     session.role === "STUDENT"
-      ? (await prisma.student.findUnique({ where: { id: session.studentId } }))
-          ?.programmeId
-      : undefined;
-  const selectedProgrammeId = ownProgrammeId ?? requestedProgrammeId;
+      ? await prisma.student.findUnique({
+          where: { id: session.studentId },
+          select: { programmeId: true, status: true, completedAt: true },
+        })
+      : null;
+  const selectedProgrammeId = currentStudent?.programmeId ?? requestedProgrammeId;
+  // Once a student has graduated, coursework due after the year they
+  // completed in isn't theirs to see, there's nothing left to submit for it
+  // and it would just look like outstanding work. completedAt is only set
+  // while status is actually COMPLETED (cleared if staff reverse it), so
+  // this doesn't need to re-check status separately.
+  const visibilityCutoffYear =
+    currentStudent?.status === "COMPLETED" && currentStudent.completedAt
+      ? currentStudent.completedAt.getFullYear()
+      : null;
 
   const programmes = await prisma.programme.findMany({
     include: { _count: { select: { assessments: true } } },
@@ -108,7 +119,12 @@ export default async function AssessmentsPage({
     session.role === "STUDENT" ? { studentId: session.studentId } : undefined;
 
   const assessments = await prisma.assessment.findMany({
-    where: { programmeId: selectedProgrammeId },
+    where: {
+      programmeId: selectedProgrammeId,
+      ...(visibilityCutoffYear !== null && {
+        deadline: { lt: new Date(Date.UTC(visibilityCutoffYear + 1, 0, 1)) },
+      }),
+    },
     include: {
       submissions: { where: ownRecordFilter },
       grades: { where: ownRecordFilter },
