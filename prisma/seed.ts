@@ -131,6 +131,9 @@ async function main() {
       programmeId: business.id,
       academicYear: 2,
       status: "COMPLETED",
+      // Matches his last installment payment below (2025-09-01), the point
+      // he'd actually finished paying and could realistically graduate.
+      completedAt: new Date("2025-09-01"),
     },
   });
 
@@ -249,6 +252,8 @@ async function main() {
       programmeId: dataScience.id,
       academicYear: 2,
       status: "COMPLETED",
+      // Matches his last installment payment below (2025-10-20).
+      completedAt: new Date("2025-10-20"),
     },
   });
 
