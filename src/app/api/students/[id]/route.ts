@@ -4,6 +4,7 @@ import { requireStaff } from "@/lib/api-auth";
 import { studentUpdateSchema } from "@/lib/validations/student";
 import {
   TOTAL_INSTALLMENTS,
+  calculateStudentBalance,
   deferralEffectiveDate,
   deferralGraceEndDate,
   withdrawalEffectiveDate,
@@ -111,6 +112,36 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     parsed.data.status !== undefined &&
     parsed.data.status !== "WITHDRAWN" &&
     new Date() < withdrawalEffectiveDate(existing.withdrawnAt);
+
+  // A student can't be published as Completed with an overdue balance
+  // outstanding, per the policy page, they need to pay it off first. Only
+  // checked on the actual transition into COMPLETED, not on every
+  // unrelated edit to a student who's already marked Completed.
+  const justCompleted =
+    parsed.data.status === "COMPLETED" &&
+    existing !== null &&
+    existing.status !== "COMPLETED";
+  if (justCompleted) {
+    const studentWithBalance = await prisma.student.findUnique({
+      where: { id },
+      include: { programme: true, payments: true },
+    });
+    if (studentWithBalance) {
+      const balance = calculateStudentBalance(
+        studentWithBalance,
+        studentWithBalance.programme,
+        studentWithBalance.payments
+      );
+      if (balance.isOverdue) {
+        return NextResponse.json(
+          {
+            error: `Can't mark as Completed with an overdue balance of $${balance.amountOwedByNow.toFixed(2)}. Clear it first.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+  }
 
   // Academic year is capped by whichever programme applies after this
   // update, its current one if programmeId isn't changing, checked whenever
