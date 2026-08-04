@@ -173,31 +173,28 @@ export default async function AssessmentDetailPage({
           </CardHeader>
           <CardContent>
             {canCurrentStudentSubmit && session.role === "STUDENT" ? (
-              <div className="space-y-3">
-                {currentStudentSubmission && (
-                  <p className="text-muted-foreground text-sm">
-                    You already submitted{" "}
-                    <span className="font-medium">{currentStudentSubmission.fileName}</span> on{" "}
-                    {new Date(currentStudentSubmission.updatedAt).toLocaleString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    . Submitting again will replace it
-                    {currentStudentGrade
-                      ? ", and your current grade may no longer reflect the new file"
-                      : ""}
-                    .
-                  </p>
-                )}
-                <SubmissionForm
-                  assessmentId={assessment.id}
-                  studentId={session.studentId}
-                  hasExistingSubmission={Boolean(currentStudentSubmission)}
-                />
-              </div>
+              <SubmissionForm
+                assessmentId={assessment.id}
+                studentId={session.studentId}
+                hasExistingSubmission={Boolean(currentStudentSubmission)}
+                existingSubmissionNotice={
+                  currentStudentSubmission
+                    ? `You already submitted ${currentStudentSubmission.fileName} on ${new Date(
+                        currentStudentSubmission.updatedAt
+                      ).toLocaleString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}. Submitting again will replace it${
+                        currentStudentGrade
+                          ? ", and your current grade may no longer reflect the new file"
+                          : ""
+                      }.`
+                    : null
+                }
+              />
             ) : (
               <p className="text-muted-foreground text-sm">
                 {!isCorrectProgramme
