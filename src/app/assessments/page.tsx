@@ -20,16 +20,86 @@ import {
   classificationBadgeVariant,
 } from "@/lib/classification";
 
-export default async function AssessmentsPage() {
+export default async function AssessmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ programmeId?: string }>;
+}) {
+  const { programmeId: requestedProgrammeId } = await searchParams;
+
   const session = await getSession();
   const isStaff = session.role === "STAFF";
 
-  // Students only see assessments for their own programme; staff see all.
-  const programmeFilter =
+  // A student only ever has one programme to look at, so they skip the
+  // picker entirely. Staff pick a programme first (below), then see that
+  // programme's assessments grouped by module, rather than every
+  // programme's assessments at once.
+  const ownProgrammeId =
     session.role === "STUDENT"
       ? (await prisma.student.findUnique({ where: { id: session.studentId } }))
           ?.programmeId
       : undefined;
+  const selectedProgrammeId = ownProgrammeId ?? requestedProgrammeId;
+
+  const programmes = await prisma.programme.findMany({
+    include: { _count: { select: { assessments: true } } },
+    orderBy: { name: "asc" },
+  });
+  const serializedProgrammes = programmes.map(serializeProgramme);
+
+  if (!selectedProgrammeId) {
+    return (
+      <div className="mx-auto max-w-7xl space-y-6 p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">Assessments</h1>
+            <p className="text-muted-foreground text-sm">
+              Choose a programme to see its assessments.
+            </p>
+          </div>
+          {isStaff && (
+            <AssessmentFormDialog programmes={serializedProgrammes} />
+          )}
+        </div>
+
+        {programmes.length === 0 ? (
+          <Card>
+            <CardHeader />
+            <CardContent>
+              <p className="text-muted-foreground py-8 text-center text-sm">
+                No programmes yet.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {programmes.map((programme) => (
+              <Link
+                key={programme.id}
+                href={`/assessments?programmeId=${programme.id}`}
+              >
+                <Card className="transition-colors hover:bg-muted/50">
+                  <CardHeader>
+                    <CardTitle>{programme.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground text-sm">
+                      {programme._count.assessments} assessment
+                      {programme._count.assessments === 1 ? "" : "s"}
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const selectedProgramme = programmes.find(
+    (p) => p.id === selectedProgrammeId,
+  );
 
   // For a student, only their own submission/grade is needed (to show a
   // per-row result), not the whole cohort's. Staff still get every
@@ -37,25 +107,20 @@ export default async function AssessmentsPage() {
   const ownRecordFilter =
     session.role === "STUDENT" ? { studentId: session.studentId } : undefined;
 
-  const [assessments, programmes] = await Promise.all([
-    prisma.assessment.findMany({
-      where: { ...(programmeFilter && { programmeId: programmeFilter }) },
-      include: {
-        programme: true,
-        submissions: { where: ownRecordFilter },
-        grades: { where: ownRecordFilter },
-      },
-      orderBy: [{ module: "asc" }, { deadline: "asc" }],
-    }),
-    prisma.programme.findMany({ orderBy: { name: "asc" } }),
-  ]);
-
-  const serializedProgrammes = programmes.map(serializeProgramme);
+  const assessments = await prisma.assessment.findMany({
+    where: { programmeId: selectedProgrammeId },
+    include: {
+      submissions: { where: ownRecordFilter },
+      grades: { where: ownRecordFilter },
+    },
+    orderBy: [{ module: "asc" }, { deadline: "asc" }],
+  });
 
   // Grouped by module (a plain text field, not its own entity, see README)
   // rather than one flat list, so assessments for the same subject sit
-  // together instead of interleaved by deadline across every module at once.
-  const assessmentsByModule = new Map<string, typeof assessments>();
+  // together instead of interleaved by deadline.
+  type AssessmentRow = (typeof assessments)[number];
+  const assessmentsByModule = new Map<string, AssessmentRow[]>();
   for (const assessment of assessments) {
     const group = assessmentsByModule.get(assessment.module);
     if (group) {
@@ -69,7 +134,20 @@ export default async function AssessmentsPage() {
     <div className="mx-auto max-w-7xl space-y-6 p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Assessments</h1>
+          {isStaff && (
+            <Button
+              variant="ghost"
+              size="sm"
+              nativeButton={false}
+              render={<Link href="/assessments" />}
+              className="mb-1 -ml-2"
+            >
+              Back to Programmes
+            </Button>
+          )}
+          <h1 className="text-2xl font-semibold">
+            {selectedProgramme?.name ?? "Assessments"}
+          </h1>
           <p className="text-muted-foreground text-sm">
             {assessments.length} assessment{assessments.length === 1 ? "" : "s"}
           </p>
@@ -100,7 +178,6 @@ export default async function AssessmentsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Title</TableHead>
-                      <TableHead>Programme</TableHead>
                       <TableHead>Deadline</TableHead>
                       <TableHead>
                         {isStaff ? "Submissions" : "Your Result"}
@@ -136,7 +213,6 @@ export default async function AssessmentsPage() {
                               {assessment.title}
                             </Link>
                           </TableCell>
-                          <TableCell>{assessment.programme.name}</TableCell>
                           <TableCell>
                             {new Date(assessment.deadline).toLocaleString(
                               "en-GB",

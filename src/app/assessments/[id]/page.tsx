@@ -109,7 +109,13 @@ export default async function AssessmentDetailPage({
           variant="ghost"
           size="sm"
           nativeButton={false}
-          render={<Link href="/assessments" />}
+          render={
+            <Link
+              href={
+                isStaff ? `/assessments?programmeId=${assessment.programmeId}` : "/assessments"
+              }
+            />
+          }
         >
           Back to Assessments
         </Button>
