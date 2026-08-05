@@ -148,6 +148,14 @@ npx prisma db seed
 npm run dev
 ```
 
+## Testing
+
+```bash
+npm test
+```
+
+Unit tests cover `src/lib/balance.ts` and `src/lib/classification.ts`, the app's core business logic (installment billing, the deferral/withdrawal effective-date and grace-period rules, `effectiveStatus`, and the grade classification thresholds). Scoped deliberately to this pure logic rather than API routes or UI, it's the most complex and previously-buggy part of the app (see the deferral/withdrawal commits and AI_USAGE.md for the bugs these tests now guard against), while everything route- and role-level was verified live against a running instance instead (also logged in AI_USAGE.md).
+
 Open [http://localhost:3000](http://localhost:3000).
 
 ## Environment Variables

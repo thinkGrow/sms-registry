@@ -118,7 +118,12 @@ const formatDate = (date: Date) =>
 // one. Students can't have two deferrals overlapping (staff must set status
 // back to ENROLLED before a new one can start), so this only ever needs to
 // add whole years, never a partial one.
-function yearsElapsedForBilling(
+//
+// Exported for direct unit testing (see balance.test.ts): it's the single
+// most complex, previously-buggy piece of logic in the app, and testing it
+// directly is far clearer than reverse-engineering it through
+// calculateStudentBalance, which adds unrelated fee/cap noise.
+export function yearsElapsedForBilling(
   enrolmentDate: Date,
   now: Date,
   deferredAt: Date | null,
