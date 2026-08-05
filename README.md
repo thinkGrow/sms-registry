@@ -23,6 +23,14 @@ Plus a plain-language `/policy` page explaining fees and enrolment-status rules 
 - Tailwind CSS + shadcn/ui
 - Vitest for unit tests
 
+## Architecture
+
+- **Server Components by default.** Pages fetch data directly through Prisma inside the component itself, no separate client-side fetching layer. Only the interactive pieces (forms, dialogs, filters) are Client Components, and they call the API routes below rather than touching Prisma directly.
+- **API routes handle every mutation** — `src/app/api/{students,programmes,assessments,payments,grades}`, plus a nested `submissions` route for file upload. Each one re-validates with the same Zod schema the form used (client-side validation alone isn't trustworthy, a route can be hit directly) and enforces its own role rule server-side.
+- **`src/lib/` holds the business logic**, independent of any route or page: `balance.ts` (installment billing and the deferral/withdrawal/completion rules), `classification.ts` (grade thresholds), `api-auth.ts` (`requireStaff` / `requireStaffOrSelf` / `requireSelf`), `serialize.ts` (converting Prisma's `Decimal` to a plain number before it crosses into a Client Component), and `session.ts` (the cookie-based role toggle).
+- **Nothing derivable is stored.** Overdue status, late submissions, grade classification, installments due, and a deferred student's effective status are all computed at read time from raw dates and scores, not written to the database, so there's no scheduler needed to keep them correct as time passes.
+- **Staff and student views share the same pages** (`/students/[id]`, `/assessments/[id]`, ...), rendered differently by role through conditional logic, rather than a separate route tree per role.
+
 ## Design System
 
 Colors are CSS variables in `src/app/globals.css` (light/dark pairs — `--primary`, `--destructive`, `--success`, etc.), and components are shadcn/ui primitives owned in `src/components/ui/`. Feature code always uses these shared tokens/components rather than one-off styling.
@@ -179,4 +187,6 @@ Maintained by hand in this README alongside `schema.prisma`. Renders natively on
 
 ## AI Usage
 
-This project was built with Claude Code as a collaborative pair-programmer. See [AI_USAGE.md](AI_USAGE.md) for the full step-by-step log of what was AI-assisted and what was manually reviewed/decided.
+Built with Claude Code as a pair-programmer throughout: scaffolding, schema design, every API route and UI, and debugging. Product and scope decisions (what to build, what to deliberately leave out, how to read ambiguous spec wording) stayed with the developer; Claude proposed implementations and flagged edge cases, and almost nothing was accepted as working without being verified against a running instance rather than just reading the code back.
+
+See [AI_USAGE.md](AI_USAGE.md) for the fuller overview of the approach, and a detailed log of individual decisions below that for anyone who wants to trace a specific one.
