@@ -1,18 +1,69 @@
-# Student Management System : Registry Module
+# Student Management System — Registry Module
 
-Technical assessment submission for PEN Global, covering the Registry module: student enrolment, fees & payments, assessment submission, and marksheet & results.
+A technical assessment submission for PEN Global, built with Claude Code as a pair-programmer (see [AI_USAGE.md](AI_USAGE.md)).
+
+The brief asks for the four workflows a Registry Administrator uses every day, not a full platform. This covers exactly that: enrolling and managing students, tracking fees and payments, students submitting work against staff-created assessments, and staff grading with publish/withhold control over results — plus the role separation (staff vs. student) and edge cases (overdue fees, late submissions, deferred/withdrawn students, withheld results) needed for it to behave like a real registry system rather than a happy-path demo.
+
+## What's Built
+
+**1. Student Enrolment** — create/edit student records (name, email, DOB, programme, academic year, enrolment status), auto-generated Student IDs (`SMS-<year>-<0001>`), search and filter by name, ID, programme, or status, and hard delete for genuinely mistaken entries.
+
+**2. Fees & Payments** — a fee per programme (with an optional per-student override), billed in installments anchored to each student's own enrolment date, real-time outstanding balance, and overdue flagging on the Registry dashboard.
+
+**3. Assessment Submission** — staff create assessments (title, module, deadline); students upload a PDF/DOCX against an open one. One submission per student per assessment, resubmission allowed up to the deadline, late submissions accepted but flagged.
+
+**4. Marksheet & Results** — staff enter a numeric grade per student per assessment with automatic Pass/Merit/Distinction classification, and publish or withhold each result individually. Students only ever see a published result.
+
+Plus a plain-language `/policy` page explaining fees and enrolment-status rules for both roles, and every access rule enforced server-side, not just hidden in the UI.
 
 ## Tech Stack
 
 - Next.js (App Router) + TypeScript
 - PostgreSQL + Prisma ORM (via the `@prisma/adapter-pg` driver adapter)
-- Tailwind CSS
-- shadcn/ui
+- Tailwind CSS + shadcn/ui
+- Vitest for unit tests
 
 ## Design System
 
-- **Colors** are centralized as CSS variables in `src/app/globals.css` (`--primary`, `--destructive`, `--success`, `--warning`, `--info`, etc.), each with a light and dark value. Components reference these tokens (`bg-success`, `text-warning-foreground`, ...) rather than hardcoded colors, so retuning a color is a one-line change.
-- **Components** are shadcn/ui primitives owned in `src/components/ui/` (e.g. `Button`, `Badge`), each defining every visual variant once via `cva`. Feature code always imports these shared components rather than styling one-off buttons/badges per page.
+Colors are CSS variables in `src/app/globals.css` (light/dark pairs — `--primary`, `--destructive`, `--success`, etc.), and components are shadcn/ui primitives owned in `src/components/ui/`. Feature code always uses these shared tokens/components rather than one-off styling.
+
+## Getting Started
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Copy environment variables (defaults already match docker-compose.yml)
+cp .env.example .env
+
+# 3. Start PostgreSQL
+docker compose up -d
+
+# 4. Apply the schema and generate the Prisma Client
+npx prisma migrate dev
+
+# 5. Seed demo data
+npx prisma db seed
+
+# 6. Run the dev server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Testing
+
+```bash
+npm test
+```
+
+Unit tests cover `src/lib/balance.ts` and `src/lib/classification.ts` — the installment billing, deferral/withdrawal effective-date and grace-period math, and grade classification thresholds. This is the app's most complex (and, during the build, most bug-prone) logic, so it's what got automated tests; everything route/role/UI-level was instead verified live against a running instance with curl, logged step by step in [AI_USAGE.md](AI_USAGE.md).
+
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string. Default in `.env.example` matches the `docker-compose.yml` Postgres container out of the box. |
 
 ## Data Model
 
@@ -81,88 +132,50 @@ erDiagram
     }
 ```
 
-This diagram is maintained by hand in this README and updated as models are added. To view it, open this file on GitHub (renders natively) or in an editor with Mermaid preview support (e.g. the Markdown Preview Mermaid Support extension in VS Code).
+Maintained by hand in this README alongside `schema.prisma`. Renders natively on GitHub, or in an editor with Mermaid preview support.
 
-## Design Decisions & Known Limitations
+## Design Decisions
 
-- **One programme per student.** A student can only be enrolled in a single programme at a time. In reality, students sometimes hold multiple programmes (double majors, transfers) — this is a deliberate scope simplification given the assessment's timeframe and the spec's literal wording ("their programme"), not an oversight. Modeling it properly would require scoping fees, assessments, and grades per-programme-per-student rather than per-student, which is a structural change we're choosing not to take on now.
-- **`feeOverride` instead of a scholarship/financial-aid system.** Students can have an optional per-student fee override (discount, aid, scholarship) via a single nullable field, rather than a full application/approval workflow. This covers the common case ("this student doesn't pay the standard rate") without building an entire subsystem the spec doesn't ask for. It's a **total programme fee** replacement, not a per-year amount, still split evenly across the installment years like the programme's standard fee, the student form spells this out since it isn't obvious from the label alone.
-- **`academicYear` is staff-editable, not derived.** It represents year of study (1st/2nd/3rd...), not intake year, and isn't computed from enrolment date because a retake can put a student in the same academic year across two sessions. It is capped by the selected programme's degree length (4 for Bachelor's, 2 for Master's), the same mapping the installment schedule uses, enforced both in the form (dynamic max, reacting to the selected programme) and server-side in the API route (checked against whichever programme applies after the update, so it can't be bypassed by editing programme and academic year separately).
-- **New student form defaults enrolment date to today**, since a new record is almost always someone enrolling right now; still editable for a backdated entry.
-- **Payment reference numbers are auto-generated, not staff-entered.** This app doesn't integrate with a real payment gateway or bank, so there's no external reference number flowing in from anywhere to capture. The system generates its own (e.g. `PMT-2026-000001`), which sidesteps staff typos and uniqueness conflicts entirely.
-- **Payments are ordinary CRUD, not an accounting ledger.** Staff can edit or delete a recorded payment directly to fix a mistake. A real accounting system would use immutable entries with reversal/adjustment records to preserve a full audit trail instead of allowing direct edits — that's out of scope here given the assessment's timeframe.
-- **Fees are billed in installments, one per year of study, not as a single lump sum.** A Bachelor's programme splits its fee into 4 installments (`degreeLevel: BACHELORS`), a Master's into 2 (`MASTERS`). This exists because a flat "pay the whole programme fee once" model doesn't reflect how tuition is actually charged, and doesn't account for a student progressing to their next academic year at all.
-- **Each student's installment schedule is anchored to their own `enrolmentDate`, not a single shared programme due date.** Two students in the same programme can have started at completely different times, so `Programme.feeDueDate` only acts as an on/off switch for whether overdue tracking applies to that programme at all (null = never overdue, e.g. for a programme with no formal fee schedule); the actual per-installment due dates are computed per student as one year after the last, starting from their own enrolment date.
-- **"Overdue" means behind on installments actually due by now, not behind on the full fee.** A student who has paid more than what's cumulatively due for their current year isn't overdue, even if they haven't paid the programme's full fee yet, that portion isn't due yet. Conversely, a student who has paid a lot up front can still show as "not overdue" while genuinely owing money overall, since the overdue flag only reflects the installment schedule, not the total remaining balance (both are shown separately in the UI).
-- **Assessments are scoped to a programme, not a specific module registration.** `Assessment.programmeId` restricts submission eligibility to students in that programme. This is a real gap we chose not to close: a full implementation would need a separate `Module` entity, a student-to-module registration record (since not every student in a programme takes every module, electives and exemptions exist), and module prerequisites (e.g. can't take "Algorithms II" without passing "Data Structures"). All three are out of scope here, since building them would mean a new registration workflow beyond the four described in the assessment, not just a schema addition.
-- **Assessments are a two-step drill-down: pick a programme, then see its assessments grouped by module.** Staff land on a programme picker (`/assessments`, one card per programme with its assessment count) and drill into `/assessments?programmeId=...` to see that programme's assessments as one card per module. A student only ever has one programme, so they skip the picker entirely and land straight on their own programme's module view, even if `programmeId` is manipulated in the URL, a student's own programme always wins over the query param, never the other way around. `module` is still a plain text field, not its own entity (see the module-registration limitation above). The single assessment page's "Back to Assessments" link returns staff to the specific programme they came from, not the picker.
-- **A deferral takes effect on the next 1st of January, not the day it's set, then freezes the fee schedule for one assumed year before resuming.** `Student.deferredAt` records when status last transitioned into `DEFERRED`, set automatically by the students API route (not staff-editable directly). Three phases follow from that date: before the next Jan 1, billing is unaffected, exactly as if not deferred; from Jan 1 for one year, the schedule is frozen at whatever was already due the moment the deferral took effect; after that year of grace, counting resumes normally from that frozen point, permanently shifting the whole schedule out by a year (a Bachelor's student who defers once ends up on a 5-year schedule instead of 4) rather than catching back up on its own. This specifically avoids retroactively un-billing a year the student had already started, only years not yet reached get pushed back, never the current one, and matches how deferrals are actually processed at year boundaries rather than ad hoc. Reversing a deferral before it's taken effect fully cancels it (`deferredAt` cleared); reversing it after is left alone, since the shift already happened. `Student.deferredYearsBanked` lets a second, later deferral still compound correctly with an earlier one that's already fully resolved by the time it starts, instead of the fresh calculation for the new one silently erasing the first's already-earned delay. Both the stored `status` and the students list/detail badges reflect this automatically: once a deferral's year of grace ends, the student is treated as `ENROLLED` again everywhere (badge, assessment submission eligibility) without staff needing to manually flip it back, computed at read time the same way every other derived value in this app is (see `effectiveStatus` in `balance.ts`), since there's no scheduler to do it for them.
-- **Withdrawal works differently: it only takes effect from the next 1st of January (business as usual until then), and freezes permanently from there, with no resuming.** `Student.withdrawnAt` follows the same next-Jan-1 pattern as `deferredAt` initially, but withdrawal has no "active again" phase, once its effective date arrives the student's fee schedule is locked at whatever was due through the end of the year they withdrew in, and nothing further ever accrues, matching that leaving is permanent while a deferral is a temporary pause.
-- **A Completed student stops seeing assessments due after the year they graduated in.** `Student.completedAt` records when status last transitioned into `COMPLETED` (set automatically by the students API route, cleared if staff reverse it, same pattern as `deferredAt`/`withdrawnAt`). Both the assessments list and the single assessment page filter/block anything with a deadline after that year, a direct link to a hidden one returns a genuine 404 rather than just being missing from the list, since there's nothing left for a graduated student to do with coursework from after they finished.
-- **Deadlines are full timestamps, not dates.** `Assessment.deadline` includes a time of day, since whether a submission is "late" depends on an exact cutoff, unlike, say, date of birth where time of day is meaningless.
-- **Resubmission overwrites the existing record.** `Submission` has a unique constraint on `(studentId, assessmentId)`, so a resubmission updates the same row (new file, new timestamp) rather than preserving every past attempt. No submission history/versioning is kept. Since overwriting erases any visible trace of a resubmission, staff see a computed **"Resubmitted"** badge whenever `createdAt` and `updatedAt` differ, and a **"Resubmitted after grading"** badge instead when the resubmission happened after the existing grade was last saved, since that grade may no longer reflect the file it was actually graded against. On the student's side, the submit form itself shows their current file name and submission date before they resubmit (warning that it'll be replaced, and that an existing grade may go stale), plus a confirmation message once the upload succeeds.
-- **Grades use `Decimal`, not `Int`, and allow half points.** Classification thresholds (Pass ≥ 40, Merit ≥ 60, Distinction ≥ 70) need exact comparisons, so floating point isn't safe here, same reasoning as money fields. A score under 40 is treated as an implicit **Fail**, which the spec doesn't name but leaves as the obvious remaining case. Classification itself is computed from the score at read time, never stored.
-- **A student can't be marked Completed with an overdue balance outstanding.** Matches the policy page's "pay off any remaining overdue balance" line, enforced server-side rather than left as text alone: the students API route computes the student's live balance on the actual transition into `COMPLETED` and rejects it with the exact amount owed if `isOverdue` is true. `COMPLETED` itself still has no special billing treatment beyond this gate (unlike `DEFERRED`/`WITHDRAWN`), that gap is accepted rather than fixed, since a student can only realistically reach `COMPLETED` after their installment count has already hit the fixed per-programme cap, there's no way to "complete" early in a closed-credit system, so nothing is left to keep accruing afterward.
-- **Publish/withhold is per grade, not per student.** Staff can publish or withhold each (student, assessment) result independently, rather than one switch revealing or hiding a student's entire marksheet at once. The spec's wording ("per student") was ambiguous here; this reading was chosen because it lets staff publish results assessment by assessment as grading finishes, which is how a Registry would realistically operate.
-- **Payments are per installment year, not a free-form amount.** Staff and students pick an unpaid year (Year 1 through the programme's total installments, 4 for Bachelor's, 2 for Master's) rather than typing any number; the amount is always computed server-side from the student's own fee, never accepted from the client, and a year that's already been paid isn't offered again. `Payment.installmentYear` is nullable since payments recorded before this rule existed have no year they cleanly map to (they predate it rather than violate it), and are shown as "Unspecified" in the payments table.
-- **Payments can't push a student past their fee.** The one-payment-per-year rule already prevents this on its own for any student paying entirely through the new flow, but it's checked against the running total regardless, since a legacy payment recorded before installmentYear existed could already have pushed a student's total past their fee on its own (with a free-form amount at the time). Both recording a new payment and editing an existing one are rejected if the total would exceed what's owed, whether attempted by staff or by the student's own online payment. Once fully paid, the API refuses any further payment with a clear message rather than silently allowing a negative balance.
-- **Hard delete exists, but only for a student with no real history.** `WITHDRAWN` status is still how a real student leaving is represented, delete is specifically for removing a mistaken entry (wrong record created, duplicate, typo), not a substitute for it. The safeguard isn't a check written in the API route, it's Postgres itself: `Payment`, `Submission`, and `Grade` all have a required (non-cascading) foreign key to `Student`, so the database rejects deleting a student who has any of those on record, surfaced as a clear error rather than a generic 500. Staff-only, from the students list.
-- **Student ID generation has an accepted race condition.** The next `SMS-<year>-XXXX` id is computed by reading the current max and incrementing, not via a dedicated database sequence. Two simultaneous student creations could theoretically compute the same id. Given this is a single-registry-team internal tool rather than a high-concurrency system, this risk is accepted rather than engineered around.
-- **Submitted files are stored on local disk (`public/uploads/`), not object storage.** No S3/Vercel Blob integration exists; files are saved directly to the filesystem with a UUID-based name, and metadata (original filename, type) is stored in Postgres. This is a pragmatic choice for an app running locally rather than deployed at scale, but it also means files are served without any access control, anyone with a submission's URL can view it. A production version would use signed URLs from private object storage instead.
-- **Role separation is a cookie-based toggle, not real authentication.** Per the spec ("auth optional – a simple role toggle is fine"), there's no login, password, or session expiry. A cookie stores either `{ role: "STAFF" }` or `{ role: "STUDENT", studentId }`, switched via the nav bar. Since it's just a readable cookie rather than a signed session, anyone could set it to any student id themselves, there's no cryptographic guarantee they are who they claim. A production version would need real authentication (e.g. a signed session or JWT) behind these same access rules.
-- **Every API mutation route enforces its role rule server-side, not just in the UI.** Creating/editing students and assessments, entering grades, and publish/withhold are staff-only; recording a payment is staff or the student themselves; submitting assessment work is the student themselves only, staff can no longer do this even via a direct API call. A shared `src/lib/api-auth.ts` helper (`requireStaff`, `requireStaffOrSelf`, `requireSelf`) is used consistently across every route, this was verified directly with curl (not just by checking the UI hides a button), including confirming a student can't spoof another student's id to submit or pay on their behalf.
-- **Staff and student views share the same pages, gated by conditional rendering.** Rather than build a separate route tree, `/students/[id]` and `/assessments/[id]` render differently depending on the session's role (edit controls, the full submissions/grades list, and management actions are staff-only; a student sees a read-only version of just their own data). A student attempting to view another student's page, or the shared list/dashboard pages, is redirected back to their own profile.
-- **Students only see assessments for their own programme, and only their own submission on each one**, matching the same programme-scoping decision made for submission eligibility. Grading and publish/withhold controls are staff-only and hidden entirely from the student view.
-- **Students see their own result inline on both the assessments list and the assessment detail page**, not just on their profile's Marksheet. Each row/page shows "Not submitted," "Pending" (submitted but not yet graded, or graded but withheld), or the published score and classification. Staff instead see the cohort-wide submission count on the list and the full Grades entry table on the detail page, since those are the actions staff take, not a personal result to check.
-- **The "can't submit" message names the actual reason, not always "wrong programme."** A student can be blocked from submitting for two independent reasons: their programme doesn't match the assessment, or their enrolment status isn't `ENROLLED`. Only `ENROLLED` can submit, being deferred, withdrawn, or completed all block it, regardless of whether the assessment window is still open, none of them mean the student is currently doing coursework. Each case gets its own message (wrong programme, deferred, withdrawn, or completed) rather than one generic "not enrolled" line, enforced identically in the API route and the page.
-- **Programmes have their own list and detail pages** showing the standard year-wise fee breakdown (one installment per year of study, evenly split, with a running cumulative total), separate from any individual student's actual schedule. This is the programme-level version of the same even split `calculateStudentBalance` already computes per student, a student's real installment dates are still anchored to their own `enrolmentDate` and may use a `feeOverride` instead of the programme's standard fee, this page only shows the baseline. Programmes now have full staff-only Create/Edit (no delete, matching the no-hard-delete precedent set by Students and Assessments), via the same `Dialog` + `react-hook-form` + `Zod` pattern used everywhere else, enforced server-side through `requireStaff` on both `/api/programmes` and `/api/programmes/[id]`. Both roles can view the fee breakdown, since a programme's fee schedule isn't private student data, but the enrolled-student count is staff-only, cohort size isn't something a student needs to know, the same reasoning already applied to the "Submissions" count on the assessments list. `degreeLevel` is the one field that actually drives the x/4 vs x/2 installment split, everything else (the breakdown table, a student's own balance) already reads that field automatically, so the form itself needs no separate installment logic.
-- **Saving a grade shows a "Saved" confirmation** next to the Save button, since the table previously gave no feedback that a score had actually been recorded. It clears as soon as that row's score is edited again, so it can't be mistaken for confirming a newer, unsaved value.
-- **The Grades table includes a direct link to the submitted file**, not just the student's name and a score box. Before this, grading meant cross-referencing the separate Submissions table above to find which file belonged to which row; the file link is now right next to the score input, since actually reviewing the work is a prerequisite to grading it.
-- **Ungraded work is visible everywhere staff would look for it**, not just the dashboard: the assessments list shows an "N ungraded" badge per row, the assessment detail page's submissions table flags each ungraded row individually, and its Grades section title shows the remaining count (e.g. "Grades (2 ungraded)"). All four (dashboard, list, detail submissions, detail grades) use the same definition, no `Grade` row at all for that (student, assessment) pair, not just unpublished, computed in application code since `Submission` and `Grade` have no direct database relation to join on.
-- **Staff cannot submit assignments on behalf of a student.** Submission is a student-only, self-service action, staff only view submissions and grade them. This wasn't the original design, the submission form initially included a student picker for anyone (a stand-in from before role separation existed), and was deliberately removed once we considered whether staff should have this capability.
-- **Students see the same fee summary as staff** (fee amount, paid, outstanding, installment breakdown, overdue status). An earlier version of this hid all of it from students, reasoning by extension from the online payment dialog's "no need to show balance before paying" design, but that went further than intended, a student genuinely needs to know what they owe to make sense of what to pay. The role difference is scoped to actions, not information: staff get "Record Payment" (with edit/delete on existing entries) and students get "Make a Payment" instead.
-- **Switching identity (staff ↔ student, or student ↔ another student) stays on the current page when it's an assessments page**, list or detail, since those render the same route for both roles just with filtered content. Every other page (dashboard, students list, another student's profile) has genuinely role-specific content that doesn't carry over, so those still fall back to each role's own default landing page (dashboard for staff, own profile for a student).
-- **The nav bar always shows who you're currently viewing as.** Staff sees a "Staff" badge; a student sees their own name and enrolment status badge (using the same label/color mapping as the student list table). This makes the active role and, for students, their status unambiguous at a glance, rather than only discoverable by opening a profile.
-- **A static `/policy` page explains the fee and status rules in plain language**, for both roles. It's a summary for people, not the source of truth, the actual behavior lives in `balance.ts`; this page just restates it without the technical terms (`deferredAt`, effective dates, etc.), kept deliberately short. It also spells out that deferral only pauses what's *due*, not what a student is *allowed to pay*, payments aren't gated by status at all (see the payments-and-deferral bullet above), and that `COMPLETED` means paying off any remaining overdue balance and contacting the registry for a certificate, this last part is policy text only, no certificate workflow exists in the app.
-- **Online payment is a dummy, no real gateway.** Students can pay their own fees via a "Make a Payment" flow that just records the amount they enter immediately, no card details, no external processor, no real money moves. It uses the same payment record/reference-number generation as a staff-entered payment, just triggered by the student rather than a Registry staff member. Staff retain their own separate "Record Payment" flow (with a specific date, for logging a payment received outside the system), and only staff can edit or delete a payment record afterward.
+**Enrolment & students**
+- A student belongs to exactly one programme at a time — no double majors/transfers, scoped out given the brief's own "their programme" wording and timeframe.
+- `academicYear` is staff-set, not derived from enrolment date (a retake can repeat a year), capped server- and client-side to the programme's degree length (4 Bachelor's / 2 Master's).
+- New students default to today's enrolment date, still editable for a backdated entry.
+- Hard delete is real but Postgres-safeguarded: a student with any payment, submission, or grade on record can't be deleted, only set to `WITHDRAWN`. Delete is for fixing mistaken entries, not real departures.
 
-## Getting Started
+**Fees & payments**
+- `feeOverride` replaces a student's total programme fee outright (still split evenly across installments), rather than a full scholarship/discount subsystem.
+- Fees bill in installments — one per year of study (4 Bachelor's / 2 Master's) — anchored to each student's own `enrolmentDate`, not a shared programme due date, since students in the same programme can start at different times.
+- "Overdue" means behind on installments actually due by now, not behind on the total remaining fee; both are shown separately.
+- Payments are picked by installment year (not a free-form amount), computed server-side, and capped so a student can never pay past their total fee.
+- Online "Make a Payment" is a dummy — no real gateway. Payments generally are ordinary editable/deletable records, not an immutable ledger.
 
-```bash
-# 1. Install dependencies
-npm install
+**Deferred, withdrawn, completed**
+- Deferral takes effect the next 1 January (not immediately), freezes the fee schedule for one year from that point, then resumes — permanently shifting the whole schedule out by a year rather than the student catching back up. `deferredYearsBanked` lets a second, later deferral still compound correctly with an already-resolved earlier one.
+- Withdrawal follows the same next-Jan-1 effective date, but the freeze is permanent, no resuming.
+- Both statuses are read live, not just stored: a resolved deferral shows the student as `ENROLLED` again everywhere automatically (`effectiveStatus` in `balance.ts`), since the app has no scheduler to flip it back.
+- A student can't be marked `Completed` while an overdue balance remains. Once completed, assessments due after their graduation year stop appearing entirely — even a direct link 404s.
 
-# 2. Copy environment variables (defaults already match docker-compose.yml)
-cp .env.example .env
+**Assessments & grading**
+- Assessments are scoped to a programme, not a specific module registration — every student in a programme is assumed to take every module (no electives/prerequisites modelled).
+- One submission per student per assessment; resubmission is allowed up to the deadline, then locked. Staff see "Resubmitted" / "Resubmitted after grading" flags, since overwriting the file leaves no other trace.
+- Grades are `Decimal` (half points matter for exact Pass ≥ 40 / Merit ≥ 60 / Distinction ≥ 70 thresholds); classification is computed at read time, never stored.
+- Publish/withhold is per grade, not per student, so staff can release results assessment-by-assessment as grading finishes.
+- Ungraded work is surfaced everywhere staff would look for it: dashboard, assessments list, and assessment detail, all from one shared definition.
 
-# 3. Start PostgreSQL
-docker compose up -d
+**Access & roles**
+- Role separation is a cookie-based toggle, not real authentication, per the brief's own "a simple role toggle is fine" allowance.
+- Every mutation route enforces its role rule server-side (shared `requireStaff` / `requireStaffOrSelf` / `requireSelf` helpers), not just hidden in the UI — verified directly with curl, not just by checking a button is missing.
+- Staff and student views share the same pages (e.g. `/students/[id]`), rendered differently by role, rather than separate route trees.
 
-# 4. Apply the schema and generate the Prisma Client
-npx prisma migrate dev
+## Known Limitations
 
-# 5. Seed demo data
-npx prisma db seed
-
-# 6. Run the dev server
-npm run dev
-```
-
-## Testing
-
-```bash
-npm test
-```
-
-Unit tests cover `src/lib/balance.ts` and `src/lib/classification.ts`, the app's core business logic (installment billing, the deferral/withdrawal effective-date and grace-period rules, `effectiveStatus`, and the grade classification thresholds). Scoped deliberately to this pure logic rather than API routes or UI, it's the most complex and previously-buggy part of the app (see the deferral/withdrawal commits and AI_USAGE.md for the bugs these tests now guard against), while everything route- and role-level was verified live against a running instance instead (also logged in AI_USAGE.md).
-
-Open [http://localhost:3000](http://localhost:3000).
-
-## Environment Variables
-
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string. Default in `.env.example` matches the `docker-compose.yml` Postgres container out of the box. |
+- No multi-programme support (double majors, transfers).
+- No `Module` entity — no per-module registration, electives, or prerequisites, only programme-level scoping.
+- Payments have no audit trail; staff can directly edit or delete a recorded payment.
+- Submitted files live on local disk (`public/uploads/`) and are reachable by anyone with the URL — a real deployment needs object storage with signed URLs.
+- The role toggle is not real authentication — a real deployment needs actual login.
+- Student ID generation (max + increment) isn't concurrency-safe; accepted as low-risk for a single-registry-team tool.
+- No certificate workflow — `Completed`'s "contact the registry for a certificate" is policy text only.
 
 ## AI Usage
 
