@@ -38,6 +38,8 @@ Colors are CSS variables in `src/app/globals.css` (light/dark pairs: `--primary`
 
 ## Getting Started
 
+**First-time setup:**
+
 ```bash
 # 1. Install dependencies
 npm install
@@ -55,6 +57,13 @@ npx prisma migrate dev
 npx prisma db seed
 
 # 6. Run the dev server
+npm run dev
+```
+
+**Every time you come back to it:** Docker Desktop needs to be running, and the Postgres container needs to actually be up, which doesn't always survive quitting Docker Desktop even with the container's `restart: unless-stopped` policy. Run `docker compose up -d` before `npm run dev` (it's safe to run even if the container's already up, so there's no harm running it every time out of habit). Skipping this is what causes a connection-refused error on startup.
+
+```bash
+docker compose up -d
 npm run dev
 ```
 
