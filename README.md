@@ -20,6 +20,7 @@ Plus a plain-language `/policy` page explaining fees and enrolment-status rules 
 
 - Next.js (App Router) + TypeScript
 - PostgreSQL + Prisma ORM (via the `@prisma/adapter-pg` driver adapter)
+- Zod for validation, shared between forms and API routes, plus React Hook Form for the forms themselves
 - Tailwind CSS + shadcn/ui
 - Vitest for unit tests
 
