@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
+import type { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +65,7 @@ export function PaymentFormDialog({
     reset,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<PaymentCreateInput>({
+  } = useForm<z.input<typeof paymentCreateSchema>, unknown, PaymentCreateInput>({
     resolver: zodResolver(paymentCreateSchema),
     defaultValues: payment
       ? {
@@ -172,7 +173,7 @@ export function PaymentFormDialog({
                   type="date"
                   value={
                     field.value
-                      ? new Date(field.value).toISOString().slice(0, 10)
+                      ? new Date(field.value as Date).toISOString().slice(0, 10)
                       : ""
                   }
                   onChange={(e) =>

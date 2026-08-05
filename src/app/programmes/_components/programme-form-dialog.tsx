@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
+import type { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +54,7 @@ export function ProgrammeFormDialog({ programme }: ProgrammeFormDialogProps) {
     reset,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<ProgrammeCreateInput>({
+  } = useForm<z.input<typeof programmeCreateSchema>, unknown, ProgrammeCreateInput>({
     resolver: zodResolver(programmeCreateSchema),
     defaultValues: programme
       ? {
@@ -173,7 +174,7 @@ export function ProgrammeFormDialog({ programme }: ProgrammeFormDialogProps) {
                 <Input
                   id="feeDueDate"
                   type="date"
-                  value={field.value ? toDateInputValue(field.value) : ""}
+                  value={field.value ? toDateInputValue(field.value as Date) : ""}
                   onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
                 />
               )}

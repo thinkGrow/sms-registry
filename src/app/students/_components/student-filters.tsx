@@ -22,7 +22,7 @@ export function StudentFilters({ programmes }: { programmes: SerializedProgramme
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
-  function updateParam(key: string, value: string) {
+  function updateParam(key: string, value: string | null) {
     const params = new URLSearchParams(searchParams.toString());
     if (!value || value === ALL) {
       params.delete(key);

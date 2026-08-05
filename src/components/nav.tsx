@@ -104,7 +104,7 @@ export function Nav({
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Select value={pickerValue} onValueChange={setPickerValue}>
+          <Select value={pickerValue} onValueChange={(value) => setPickerValue(value ?? "")}>
             <SelectTrigger className="w-full sm:w-[200px]" size="sm">
               <SelectValue placeholder="View as student...">
                 {(value: string) =>

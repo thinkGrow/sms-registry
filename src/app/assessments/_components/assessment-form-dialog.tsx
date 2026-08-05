@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
+import type { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,7 +64,7 @@ export function AssessmentFormDialog({
     reset,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<AssessmentCreateInput>({
+  } = useForm<z.input<typeof assessmentCreateSchema>, unknown, AssessmentCreateInput>({
     resolver: zodResolver(assessmentCreateSchema),
     defaultValues: assessment
       ? {
@@ -174,7 +175,7 @@ export function AssessmentFormDialog({
                 <Input
                   id="deadline"
                   type="datetime-local"
-                  value={field.value ? toDatetimeLocalValue(field.value) : ""}
+                  value={field.value ? toDatetimeLocalValue(field.value as Date) : ""}
                   onChange={(e) =>
                     field.onChange(e.target.value ? new Date(e.target.value) : undefined)
                   }
