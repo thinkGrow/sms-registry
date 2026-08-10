@@ -52,13 +52,17 @@ cp .env.example .env
 # 3. Start PostgreSQL (Docker Desktop must already be open, see Prerequisites above)
 docker compose up -d
 
-# 4. Apply the schema and generate the Prisma Client
+# 4. Apply the schema
 npx prisma migrate dev
 
-# 5. Seed demo data
+# 5. Generate the Prisma Client (migrate dev doesn't reliably do this on
+#    its own with this project's generator setup, do it explicitly)
+npx prisma generate
+
+# 6. Seed demo data
 npx prisma db seed
 
-# 6. Run the dev server
+# 7. Run the dev server
 npm run dev
 ```
 
@@ -68,6 +72,8 @@ npm run dev
 docker compose up -d
 npm run dev
 ```
+
+**If you ever see `Cannot find module '@/generated/prisma/client'`** (fresh setup, after pulling a schema change, or after switching branches), that means the Prisma Client hasn't been generated for the schema currently on disk. Run `npx prisma generate`, then retry whatever failed. This is also why the dev server sometimes needs a restart after a schema change even once the client's regenerated, it caches a single client instance across hot reloads and won't pick up a newly generated one on its own.
 
 Open [http://localhost:3000](http://localhost:3000).
 
