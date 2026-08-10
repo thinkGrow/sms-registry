@@ -38,6 +38,8 @@ Colors are CSS variables in `src/app/globals.css` (light/dark pairs: `--primary`
 
 ## Getting Started
 
+**Prerequisites:** Node.js and [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or another Docker runtime) installed, and Docker Desktop actually open and running before step 3 below. Postgres runs in a container, `docker compose up -d` needs the Docker daemon itself running first, not just installed. If that step fails with something like `failed to connect to the docker API` or `dial unix .../docker.sock: connect: no such file or directory`, that's this: open Docker Desktop, wait for it to fully start, then rerun the command.
+
 **First-time setup:**
 
 ```bash
@@ -47,7 +49,7 @@ npm install
 # 2. Copy environment variables (defaults already match docker-compose.yml)
 cp .env.example .env
 
-# 3. Start PostgreSQL
+# 3. Start PostgreSQL (Docker Desktop must already be open, see Prerequisites above)
 docker compose up -d
 
 # 4. Apply the schema and generate the Prisma Client
