@@ -55,8 +55,7 @@ docker compose up -d
 # 4. Apply the schema
 npx prisma migrate dev
 
-# 5. Generate the Prisma Client (migrate dev doesn't reliably do this on
-#    its own with this project's generator setup, do it explicitly)
+# 5. Generate the Prisma Client
 npx prisma generate
 
 # 6. Seed demo data
